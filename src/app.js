@@ -7,12 +7,31 @@ import { errorHandler } from "./infrastructure/http/middlewares/errorMiddleware.
 export async function createApp() {
   const app = express();
   const container = await createContainer();
+  const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (!allowedOrigins.includes("https://sip-barang-fe.vercel.app")) {
+    allowedOrigins.push("https://sip-barang-fe.vercel.app");
+  }
+
+  const corsOptions = {
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origin tidak diizinkan oleh kebijakan CORS"));
+    },
+    credentials: true,
+    optionsSuccessStatus: 204,
+  };
 
   // Global Middlewares
-  app.use(cors({
-    origin: [process.env.CORS_ORIGIN || "http://localhost:5173", "https://sip-barang-fe.vercel.app"],
-    credentials: true,
-  }));
+  app.use(cors(corsOptions));
+  app.options("*", cors(corsOptions));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan("dev"));
