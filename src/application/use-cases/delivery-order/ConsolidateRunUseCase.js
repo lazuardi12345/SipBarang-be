@@ -19,6 +19,7 @@ export class ConsolidateRunUseCase {
     noPolisiKendaraan,
     tipeMobilRit,
     gudangAsal,
+    orderDocumentData = {},
     submitToDirector = false,
   }) {
     if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
@@ -27,22 +28,54 @@ export class ConsolidateRunUseCase {
       throw err;
     }
 
+    if (!noSchedule?.trim() || !tglSchedule || !tipeMobilRit?.trim() || !namaSupir?.trim() || !noPolisiKendaraan?.trim()) {
+      const err = new Error("Nomor/tanggal schedule, tipe mobil/rit, nama supir, dan nomor polisi wajib diisi");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const orders = [];
+    for (const id of orderIds) {
+      const order = await this.deliveryOrderRepository.findById(id);
+      if (!order) {
+        const err = new Error(`Pengiriman ${id} tidak ditemukan`);
+        err.statusCode = 404;
+        throw err;
+      }
+      if (order.status !== StatusDO.DRAFT && order.status !== StatusDO.PLANNING) {
+        const err = new Error(`${order.noDO} bukan lagi rencana pengiriman yang bisa dijadwalkan`);
+        err.statusCode = 400;
+        throw err;
+      }
+      const doc = orderDocumentData[id] || {};
+      if (!(doc.noDocPerusahaan || order.noDocPerusahaan)?.trim() || !(doc.tglDocPerusahaan || order.tglDocPerusahaan)) {
+        const err = new Error(`No. Doc dan tanggal surat jalan perusahaan wajib diisi untuk ${order.namaToko || order.noDO}`);
+        err.statusCode = 400;
+        throw err;
+      }
+      orders.push({ order, doc });
+    }
+
     const updatedOrders = [];
     const now = new Date().toISOString();
 
-    for (const id of orderIds) {
-      const order = await this.deliveryOrderRepository.findById(id);
-      if (!order) continue;
-
+    for (const { order, doc } of orders) {
       const updated = {
         ...order,
-        noSchedule: noSchedule || order.noSchedule,
+        noSchedule: noSchedule.trim(),
         tglSchedule: tglSchedule || order.tglSchedule,
         namaSupir: namaSupir || order.namaSupir,
         noHpSupir: noHpSupir !== undefined ? noHpSupir : order.noHpSupir,
         noPolisiKendaraan: noPolisiKendaraan || order.noPolisiKendaraan,
         tipeMobilRit: tipeMobilRit || order.tipeMobilRit,
         gudangAsal: gudangAsal || order.gudangAsal,
+        noDocPerusahaan: (doc.noDocPerusahaan || order.noDocPerusahaan).trim(),
+        tglDocPerusahaan: doc.tglDocPerusahaan || order.tglDocPerusahaan,
+        salesman: doc.salesman ?? order.salesman,
+        agen: doc.agen ?? order.agen,
+        kota: doc.kota ?? order.kota,
+        kecamatan: doc.kecamatan ?? order.kecamatan,
+        keteranganDoc: doc.keteranganDoc ?? order.keteranganDoc,
         status: submitToDirector ? StatusDO.MENUNGGU_ACC : order.status,
         updatedAt: now,
       };

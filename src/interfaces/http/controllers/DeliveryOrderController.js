@@ -53,7 +53,7 @@ export class DeliveryOrderController {
       const order = await this.createDeliveryOrderUseCase.execute(req.body, req.user);
       res.status(201).json({
         success: true,
-        message: "Surat Jalan (DO) berhasil dibuat",
+        message: "Rencana pengiriman berhasil disimpan",
         data: order,
       });
     } catch (err) {
@@ -117,7 +117,7 @@ export class DeliveryOrderController {
       const updated = await this.attachDocPerusahaanUseCase.execute(id, req.body, req.user);
       res.status(200).json({
         success: true,
-        message: "Surat jalan perusahaan berhasil diinput dan diajukan ke Direktur untuk di-ACC",
+        message: "No. Doc dan tanggal surat jalan perusahaan berhasil disimpan",
         data: updated,
       });
     } catch (err) {

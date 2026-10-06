@@ -1,7 +1,7 @@
 /**
  * Domain Entity: DeliveryOrder (DO / Surat Jalan Ekspedisi)
  * Merepresentasikan alur pengiriman dari:
- * Input Schedule & Surat Jalan Perusahaan -> Menunggu ACC Direktur -> ACC/Tolak -> Pengiriman -> Pelaporan Terkirim -> Invoice
+ * Rencana tujuan/barang -> Schedule & surat jalan perusahaan -> Menunggu ACC Direktur -> Pengiriman -> Invoice
  */
 export const StatusDO = Object.freeze({
   DRAFT: "DRAFT",
@@ -22,8 +22,8 @@ export class DeliveryOrder {
 
     // Data Jadwal & Kendaraan (Schedule Perusahaan)
     this.noSchedule = data.noSchedule || "";
-    this.tglSchedule = data.tglSchedule || new Date().toISOString().split("T")[0];
-    this.tipeMobilRit = data.tipeMobilRit || "8 TON / Rit : 1";
+    this.tglSchedule = data.tglSchedule || "";
+    this.tipeMobilRit = data.tipeMobilRit || "";
     this.gudangAsal = data.gudangAsal || "GUDANG PUSAT - KARAWANG";
     this.namaSupir = data.namaSupir || "";
     this.noHpSupir = data.noHpSupir || "";

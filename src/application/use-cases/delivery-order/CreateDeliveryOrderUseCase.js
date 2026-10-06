@@ -8,8 +8,24 @@ export class CreateDeliveryOrderUseCase {
   }
 
   async execute(input, user) {
-    if (!input.namaSupir || !input.noPolisiKendaraan || !input.tarifId) {
-      const err = new Error("Nama supir, nomor polisi kendaraan, dan tujuan kirim wajib diisi");
+    const namaToko = input.namaToko?.trim() || input.namaPenerima?.trim() || "";
+    if (!input.tarifId || !namaToko) {
+      const err = new Error("Tujuan kirim dan nama toko/depo wajib diisi");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const itemsBarang = Array.isArray(input.itemsBarang)
+      ? input.itemsBarang.filter(
+          (item) =>
+            item &&
+            typeof item.namaBarang === "string" &&
+            item.namaBarang.trim() &&
+            Number(item.jumlah) > 0
+        )
+      : [];
+    if (itemsBarang.length === 0) {
+      const err = new Error("Minimal satu rincian barang dengan jumlah yang valid wajib diisi");
       err.statusCode = 400;
       throw err;
     }
@@ -32,19 +48,19 @@ export class CreateDeliveryOrderUseCase {
       tanggalKirim: input.tanggalKirim || now,
 
       // Schedule & Armada
-      noSchedule: input.noSchedule || `SCH/${Date.now().toString().slice(-6)}`,
-      tglSchedule: input.tglSchedule || now.split("T")[0],
-      tipeMobilRit: input.tipeMobilRit || "8 TON / Rit : 1",
+      noSchedule: "",
+      tglSchedule: "",
+      tipeMobilRit: "",
       gudangAsal: input.gudangAsal || "GUDANG PUSAT - KARAWANG",
-      namaSupir: input.namaSupir,
+      namaSupir: "",
       noHpSupir: input.noHpSupir || "",
-      noPolisiKendaraan: input.noPolisiKendaraan,
+      noPolisiKendaraan: "",
       jenisKendaraan: input.jenisKendaraan || "Mobil CDD 8 Ton",
 
       // Dokumen Surat Jalan Perusahaan (Pabrik)
-      noDocPerusahaan: input.noDocPerusahaan || "",
-      tglDocPerusahaan: input.tglDocPerusahaan || "",
-      namaToko: input.namaToko || input.namaPenerima || "",
+      noDocPerusahaan: "",
+      tglDocPerusahaan: "",
+      namaToko,
       salesman: input.salesman || "",
       agen: input.agen || "TBN",
       kota: input.kota || "",
@@ -62,14 +78,18 @@ export class CreateDeliveryOrderUseCase {
       totalSetelahPPh: tarif.totalSetelahPPh,
 
       // Produk / Muatan
-      itemsBarang: Array.isArray(input.itemsBarang) ? input.itemsBarang : [],
+      itemsBarang,
       namaBarang: input.namaBarang || "",
-      jumlahKoli: Number(input.jumlahKoli || 0),
-      totalNilaiBarang: Number(input.totalNilaiBarang || 0),
+      jumlahKoli: itemsBarang.reduce((total, item) => total + Number(item.jumlah), 0),
+      totalNilaiBarang: itemsBarang.reduce(
+        (total, item) =>
+          total + Number(item.jumlah) * (Number(item.hargaSatuan) || 0),
+        0
+      ),
       beratBarangKg: Number(input.beratBarangKg || 0),
       catatanBarang: input.catatanBarang || "",
 
-      status: input.status || StatusDO.DRAFT,
+      status: StatusDO.DRAFT,
       dibuatOleh: {
         id: user.id,
         nama: user.nama,

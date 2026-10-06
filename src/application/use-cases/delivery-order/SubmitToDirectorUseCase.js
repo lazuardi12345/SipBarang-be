@@ -26,10 +26,29 @@ export class SubmitToDirectorUseCase {
       throw err;
     }
 
+    const noDocPerusahaan = docData.noDocPerusahaan?.trim() || order.noDocPerusahaan?.trim();
+    const tglDocPerusahaan = docData.tglDocPerusahaan || order.tglDocPerusahaan;
+    if (!noDocPerusahaan || !tglDocPerusahaan) {
+      const err = new Error("No. Doc dan tanggal surat jalan perusahaan wajib dilengkapi sebelum pengajuan");
+      err.statusCode = 400;
+      throw err;
+    }
+    if (
+      !order.noSchedule?.trim() ||
+      !order.tglSchedule ||
+      !order.tipeMobilRit?.trim() ||
+      !order.namaSupir?.trim() ||
+      !order.noPolisiKendaraan?.trim()
+    ) {
+      const err = new Error("No. Schedule, tanggal, tipe mobil/rit, nama supir, dan nomor polisi wajib dilengkapi sebelum pengajuan");
+      err.statusCode = 400;
+      throw err;
+    }
+
     const updated = {
       ...order,
-      noDocPerusahaan: docData.noDocPerusahaan || order.noDocPerusahaan || "",
-      tglDocPerusahaan: docData.tglDocPerusahaan || order.tglDocPerusahaan || new Date().toISOString().split("T")[0],
+      noDocPerusahaan,
+      tglDocPerusahaan,
       keteranganDoc: docData.keteranganDoc !== undefined ? docData.keteranganDoc : order.keteranganDoc,
       status: StatusDO.MENUNGGU_ACC,
       updatedAt: new Date().toISOString(),

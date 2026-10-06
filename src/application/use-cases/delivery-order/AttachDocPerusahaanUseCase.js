@@ -2,15 +2,14 @@ import { StatusDO } from "../../../domain/entities/DeliveryOrder.js";
 
 /**
  * Use Case: Input Surat Jalan dari Perusahaan (Pabrik).
- * Mengubah planning pengiriman menjadi siap di-ACC Direktur
- * setelah surat jalan resmi dari perusahaan/pabrik turun.
+ * Menyimpan No. Doc dan tanggal tanpa mengajukan pengiriman ke Direktur.
  */
 export class AttachDocPerusahaanUseCase {
   constructor(deliveryOrderRepository) {
     this.deliveryOrderRepository = deliveryOrderRepository;
   }
 
-  async execute(orderId, docData, user) {
+  async execute(orderId, docData) {
     const order = await this.deliveryOrderRepository.findById(orderId);
     if (!order) {
       const err = new Error("Data Surat Jalan / Planning tidak ditemukan");
@@ -18,19 +17,30 @@ export class AttachDocPerusahaanUseCase {
       throw err;
     }
 
-    if (!docData.noDocPerusahaan) {
+    if (order.status !== StatusDO.DRAFT && order.status !== StatusDO.PLANNING) {
+      const err = new Error("Dokumen hanya dapat dilengkapi sebelum pengiriman diajukan ke Direktur");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (!docData.noDocPerusahaan?.trim()) {
       const err = new Error("Nomor Dokumen / Surat Jalan dari Perusahaan wajib diisi");
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!docData.tglDocPerusahaan) {
+      const err = new Error("Tanggal Dokumen / Surat Jalan dari Perusahaan wajib diisi");
       err.statusCode = 400;
       throw err;
     }
 
     const updated = {
       ...order,
-      noDocPerusahaan: docData.noDocPerusahaan,
-      tglDocPerusahaan: docData.tglDocPerusahaan || new Date().toISOString().split("T")[0],
+      noDocPerusahaan: docData.noDocPerusahaan.trim(),
+      tglDocPerusahaan: docData.tglDocPerusahaan,
       noSchedule: docData.noSchedule || order.noSchedule,
       keteranganDoc: docData.keteranganDoc || order.keteranganDoc,
-      status: StatusDO.MENUNGGU_ACC, // Otomatis siap di-ACC Direktur!
+      status: order.status,
       updatedAt: new Date().toISOString(),
     };
 

@@ -54,7 +54,7 @@ export class GenerateInvoiceUseCase {
         namaBarang:
           order.namaBarang ||
           (order.itemsBarang && order.itemsBarang.length > 0
-            ? order.itemsBarang.map((i) => `${i.namaBarang} (${i.jumlah} ${i.satuan || "pcs"})`).join(", ")
+            ? order.itemsBarang.map((i) => `${i.namaBarang} (${i.jumlah} ${i.satuan || "Karung"})`).join(", ")
             : "-"),
         jumlahKoli: Number(order.jumlahKoli || 0),
         biayaEkspedisi: Number(order.biayaEkspedisi || 0),
