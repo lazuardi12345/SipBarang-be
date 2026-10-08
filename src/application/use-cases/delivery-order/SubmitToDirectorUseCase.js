@@ -28,18 +28,18 @@ export class SubmitToDirectorUseCase {
 
     const noDocPerusahaan = docData.noDocPerusahaan?.trim() || order.noDocPerusahaan?.trim();
     const tglDocPerusahaan = docData.tglDocPerusahaan || order.tglDocPerusahaan;
+    const noSchedule = String(docData.noSchedule ?? order.noSchedule ?? "").trim();
+    const tglSchedule = docData.tglSchedule ?? order.tglSchedule;
+    const tipeMobilRit = String(docData.tipeMobilRit ?? order.tipeMobilRit ?? "").trim();
+    const namaSupir = String(docData.namaSupir ?? order.namaSupir ?? "").trim();
+    const noPolisiKendaraan = String(docData.noPolisiKendaraan ?? order.noPolisiKendaraan ?? "").trim();
+
     if (!noDocPerusahaan || !tglDocPerusahaan) {
       const err = new Error("No. Doc dan tanggal surat jalan perusahaan wajib dilengkapi sebelum pengajuan");
       err.statusCode = 400;
       throw err;
     }
-    if (
-      !order.noSchedule?.trim() ||
-      !order.tglSchedule ||
-      !order.tipeMobilRit?.trim() ||
-      !order.namaSupir?.trim() ||
-      !order.noPolisiKendaraan?.trim()
-    ) {
+    if (!noSchedule || !tglSchedule || !tipeMobilRit || !namaSupir || !noPolisiKendaraan) {
       const err = new Error("No. Schedule, tanggal, tipe mobil/rit, nama supir, dan nomor polisi wajib dilengkapi sebelum pengajuan");
       err.statusCode = 400;
       throw err;
@@ -47,6 +47,11 @@ export class SubmitToDirectorUseCase {
 
     const updated = {
       ...order,
+      noSchedule,
+      tglSchedule,
+      tipeMobilRit,
+      namaSupir,
+      noPolisiKendaraan,
       noDocPerusahaan,
       tglDocPerusahaan,
       keteranganDoc: docData.keteranganDoc !== undefined ? docData.keteranganDoc : order.keteranganDoc,

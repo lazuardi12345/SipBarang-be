@@ -8,6 +8,8 @@ export function createTarifRoutes(tarifController, authMiddleware, roleMiddlewar
   router.get("/", tarifController.getAll);
   router.get("/:id", tarifController.getById);
   router.post("/", authMiddleware, roleMiddleware([UserRole.ADMIN]), tarifController.create);
+  router.patch("/:id", authMiddleware, roleMiddleware([UserRole.ADMIN]), tarifController.update);
+  router.delete("/:id", authMiddleware, roleMiddleware([UserRole.ADMIN]), tarifController.remove);
 
   return router;
 }

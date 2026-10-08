@@ -15,10 +15,15 @@ export class Invoice {
     this.alamatPelanggan = data.alamatPelanggan || "";
     this.items = data.items || data.deliveryOrders || [];
     this.deliveryOrders = this.items; // alias for backwards/template compatibility
-    this.subtotal = Number(data.subtotal || 0);
-    this.totalPPh2 = Number(data.totalPPh2 || data.totalPPh || 0);
+
+    const subtotal = Number(data.subtotal || 0);
+    const computedPph2 = Number(data.totalPPh2 ?? data.totalPPh ?? (subtotal * 0.02) ?? 0);
+    const computedTagihan = Number(data.totalTagihan ?? data.totalBersih ?? (subtotal - computedPph2) ?? 0);
+
+    this.subtotal = subtotal;
+    this.totalPPh2 = computedPph2;
     this.totalPPh = this.totalPPh2;
-    this.totalTagihan = Number(data.totalTagihan || data.totalBersih || (this.subtotal - this.totalPPh2) || 0);
+    this.totalTagihan = computedTagihan;
     this.totalBersih = this.totalTagihan;
     this.status = data.status || StatusInvoice.BELUM_LUNAS;
     this.dibuatOleh = data.dibuatOleh; // { id, nama, role }

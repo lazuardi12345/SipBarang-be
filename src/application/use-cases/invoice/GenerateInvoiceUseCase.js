@@ -37,8 +37,9 @@ export class GenerateInvoiceUseCase {
         throw err;
       }
 
-      const pph2 = Math.round(order.biayaEkspedisi * 0.02);
-      const totalSetelahPPh = order.totalSetelahPPh || (order.biayaEkspedisi - pph2);
+      const biayaEkspedisi = Number(order.biayaEkspedisi || 0);
+      const pph2 = biayaEkspedisi * 0.02;
+      const totalSetelahPPh = biayaEkspedisi - pph2;
 
       items.push({
         deliveryOrderId: order.id,
@@ -51,13 +52,9 @@ export class GenerateInvoiceUseCase {
         tanggalKirim: order.tanggalKirim,
         namaSupir: order.namaSupir || "-",
         noPolisiKendaraan: order.noPolisiKendaraan || "-",
-        namaBarang:
-          order.namaBarang ||
-          (order.itemsBarang && order.itemsBarang.length > 0
-            ? order.itemsBarang.map((i) => `${i.namaBarang} (${i.jumlah} ${i.satuan || "Karung"})`).join(", ")
-            : "-"),
-        jumlahKoli: Number(order.jumlahKoli || 0),
-        biayaEkspedisi: Number(order.biayaEkspedisi || 0),
+        namaBarang: "-",
+        jumlahKoli: 0,
+        biayaEkspedisi,
         pph2,
         totalSetelahPPh,
       });
@@ -69,12 +66,20 @@ export class GenerateInvoiceUseCase {
       throw err;
     }
 
-    const subtotal = items.reduce((sum, item) => sum + item.biayaEkspedisi, 0);
-    const totalPPh2 = items.reduce((sum, item) => sum + item.pph2, 0);
-    const totalTagihan = items.reduce((sum, item) => sum + item.totalSetelahPPh, 0);
+    const subtotal = items.reduce((sum, item) => sum + Number(item.biayaEkspedisi || 0), 0);
+    const totalPPh2 = subtotal * 0.02;
+    const totalTagihan = subtotal - totalPPh2;
 
-    const totalInvoices = await this.invoiceRepository.count();
-    const noInvoice = this.generateNoInvoice(totalInvoices + 1);
+    const requestedNoInvoice = typeof input.noInvoice === "string" ? input.noInvoice.trim() : "";
+    const existingInvoices = await this.invoiceRepository.list();
+    const noInvoice = requestedNoInvoice || this.generateNoInvoice(existingInvoices.length + 1);
+
+    if (requestedNoInvoice && existingInvoices.some((invoice) => invoice.noInvoice === noInvoice)) {
+      const err = new Error("Nomor invoice sudah digunakan. Silakan masukkan nomor lain.");
+      err.statusCode = 409;
+      throw err;
+    }
+
     const now = new Date().toISOString();
     const id = `inv-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
 

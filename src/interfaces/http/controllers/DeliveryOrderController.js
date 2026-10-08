@@ -3,6 +3,9 @@ export class DeliveryOrderController {
     createDeliveryOrderUseCase,
     getDeliveryOrdersUseCase,
     getDeliveryOrderByIdUseCase,
+    updateDeliveryOrderUseCase,
+    reviseDeliveryOrderUseCase,
+    deleteDeliveryOrderUseCase,
     approveDeliveryOrderUseCase,
     rejectDeliveryOrderUseCase,
     reportDeliveryUseCase,
@@ -14,6 +17,9 @@ export class DeliveryOrderController {
     this.createDeliveryOrderUseCase = createDeliveryOrderUseCase;
     this.getDeliveryOrdersUseCase = getDeliveryOrdersUseCase;
     this.getDeliveryOrderByIdUseCase = getDeliveryOrderByIdUseCase;
+    this.updateDeliveryOrderUseCase = updateDeliveryOrderUseCase;
+    this.reviseDeliveryOrderUseCase = reviseDeliveryOrderUseCase;
+    this.deleteDeliveryOrderUseCase = deleteDeliveryOrderUseCase;
     this.approveDeliveryOrderUseCase = approveDeliveryOrderUseCase;
     this.rejectDeliveryOrderUseCase = rejectDeliveryOrderUseCase;
     this.reportDeliveryUseCase = reportDeliveryUseCase;
@@ -55,6 +61,48 @@ export class DeliveryOrderController {
         success: true,
         message: "Rencana pengiriman berhasil disimpan",
         data: order,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  update = async (req, res, next) => {
+    try {
+      const order = await this.updateDeliveryOrderUseCase.execute(req.params.id, req.body);
+      res.status(200).json({
+        success: true,
+        message: "Data surat jalan berhasil diperbarui",
+        data: order,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  revise = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { note } = req.body;
+      const updated = await this.reviseDeliveryOrderUseCase.execute(id, note || "");
+      res.status(200).json({
+        success: true,
+        message: "Surat jalan dikembalikan ke status revisi / draft",
+        data: updated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  remove = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const deleted = await this.deleteDeliveryOrderUseCase.execute(id);
+      res.status(200).json({
+        success: true,
+        message: "Surat jalan berhasil dihapus",
+        data: deleted,
       });
     } catch (err) {
       next(err);

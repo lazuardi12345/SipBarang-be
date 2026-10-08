@@ -1,13 +1,13 @@
 /**
- * MysqlUserRepository — Implementasi IUserRepository menggunakan MySQL.
+ * MysqlUserRepository — Implementasi IUserRepository menggunakan Prisma.
  */
 import { IUserRepository } from "../../domain/repositories/IUserRepository.js";
 import { User } from "../../domain/entities/User.js";
 
 export class MysqlUserRepository extends IUserRepository {
-  constructor(pool) {
+  constructor(prismaClient) {
     super();
-    this.pool = pool;
+    this.prisma = prismaClient;
   }
 
   _toEntity(row) {
@@ -16,39 +16,43 @@ export class MysqlUserRepository extends IUserRepository {
       id: row.id,
       nama: row.nama,
       email: row.email,
-      passwordHash: row.password_hash,
+      passwordHash: row.passwordHash,
       role: row.role,
-      createdAt: row.created_at?.toISOString?.() || row.created_at,
+      createdAt: row.createdAt?.toISOString?.() || row.createdAt,
     });
   }
 
   async findByEmail(email) {
-    const [rows] = await this.pool.query(
-      "SELECT * FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1",
-      [email]
-    );
-    return this._toEntity(rows[0]);
+    const row = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    return this._toEntity(row);
   }
 
   async findById(id) {
-    const [rows] = await this.pool.query("SELECT * FROM users WHERE id = ? LIMIT 1", [id]);
-    return this._toEntity(rows[0]);
+    const row = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    return this._toEntity(row);
   }
 
   async create(user) {
-    await this.pool.query(
-      "INSERT INTO users (id, nama, email, password_hash, role) VALUES (?, ?, ?, ?, ?)",
-      [user.id, user.nama, user.email, user.passwordHash, user.role]
-    );
-    return this._toEntity({
-      ...user,
-      password_hash: user.passwordHash,
-      created_at: new Date().toISOString(),
+    const row = await this.prisma.user.create({
+      data: {
+        id: user.id,
+        nama: user.nama,
+        email: user.email,
+        passwordHash: user.passwordHash,
+        role: user.role,
+      },
     });
+    return this._toEntity(row);
   }
 
   async list() {
-    const [rows] = await this.pool.query("SELECT * FROM users ORDER BY created_at DESC");
+    const rows = await this.prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+    });
     return rows.map((r) => this._toEntity(r));
   }
 }

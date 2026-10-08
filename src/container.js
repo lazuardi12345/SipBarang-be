@@ -1,8 +1,8 @@
 /**
  * Composition Root — Dependency Injection Container
- * Menggunakan MySQL repositories (bukan JSON file lagi).
+ * Menyusun semua dependency sesuai arsitektur clean architecture.
  */
-import { getPool } from "./infrastructure/database/MysqlDatabase.js";
+import prisma from "./infrastructure/database/prisma.js";
 import { MysqlUserRepository } from "./infrastructure/repositories/MysqlUserRepository.js";
 import { MysqlDeliveryOrderRepository } from "./infrastructure/repositories/MysqlDeliveryOrderRepository.js";
 import { MysqlInvoiceRepository } from "./infrastructure/repositories/MysqlInvoiceRepository.js";
@@ -11,15 +11,16 @@ import { JwtService } from "./infrastructure/security/JwtService.js";
 import { createAuthMiddleware } from "./infrastructure/http/middlewares/authMiddleware.js";
 import { createRoleMiddleware } from "./infrastructure/http/middlewares/roleMiddleware.js";
 
-// Use Cases - Auth
 import { RegisterUseCase } from "./application/use-cases/auth/RegisterUseCase.js";
 import { LoginUseCase } from "./application/use-cases/auth/LoginUseCase.js";
 import { GetProfileUseCase } from "./application/use-cases/auth/GetProfileUseCase.js";
 
-// Use Cases - Delivery Order
 import { CreateDeliveryOrderUseCase } from "./application/use-cases/delivery-order/CreateDeliveryOrderUseCase.js";
 import { GetDeliveryOrdersUseCase } from "./application/use-cases/delivery-order/GetDeliveryOrdersUseCase.js";
 import { GetDeliveryOrderByIdUseCase } from "./application/use-cases/delivery-order/GetDeliveryOrderByIdUseCase.js";
+import { UpdateDeliveryOrderUseCase } from "./application/use-cases/delivery-order/UpdateDeliveryOrderUseCase.js";
+import { ReviseDeliveryOrderUseCase } from "./application/use-cases/delivery-order/ReviseDeliveryOrderUseCase.js";
+import { DeleteDeliveryOrderUseCase } from "./application/use-cases/delivery-order/DeleteDeliveryOrderUseCase.js";
 import { ApproveDeliveryOrderUseCase } from "./application/use-cases/delivery-order/ApproveDeliveryOrderUseCase.js";
 import { RejectDeliveryOrderUseCase } from "./application/use-cases/delivery-order/RejectDeliveryOrderUseCase.js";
 import { ReportDeliveryUseCase } from "./application/use-cases/delivery-order/ReportDeliveryUseCase.js";
@@ -28,21 +29,19 @@ import { SubmitToDirectorUseCase } from "./application/use-cases/delivery-order/
 import { ConfirmDeliveredUseCase } from "./application/use-cases/delivery-order/ConfirmDeliveredUseCase.js";
 import { ConsolidateRunUseCase } from "./application/use-cases/delivery-order/ConsolidateRunUseCase.js";
 
-// Use Cases - Invoice
 import { GenerateInvoiceUseCase } from "./application/use-cases/invoice/GenerateInvoiceUseCase.js";
 import { GetInvoicesUseCase, GetInvoiceByIdUseCase, UpdateInvoiceStatusUseCase } from "./application/use-cases/invoice/GetInvoicesUseCase.js";
 
-// Use Cases - Tarif
 import { GetTarifListUseCase, GetTarifByIdUseCase } from "./application/use-cases/tarif/GetTarifListUseCase.js";
 import { CreateTarifUseCase } from "./application/use-cases/tarif/CreateTarifUseCase.js";
+import { UpdateTarifUseCase } from "./application/use-cases/tarif/UpdateTarifUseCase.js";
+import { DeleteTarifUseCase } from "./application/use-cases/tarif/DeleteTarifUseCase.js";
 
-// Controllers
 import { AuthController } from "./interfaces/http/controllers/AuthController.js";
 import { DeliveryOrderController } from "./interfaces/http/controllers/DeliveryOrderController.js";
 import { InvoiceController } from "./interfaces/http/controllers/InvoiceController.js";
 import { TarifController } from "./interfaces/http/controllers/TarifController.js";
 
-// Routes
 import { createAuthRoutes } from "./interfaces/http/routes/authRoutes.js";
 import { createDeliveryOrderRoutes } from "./interfaces/http/routes/deliveryOrderRoutes.js";
 import { createInvoiceRoutes } from "./interfaces/http/routes/invoiceRoutes.js";
@@ -50,23 +49,15 @@ import { createTarifRoutes } from "./interfaces/http/routes/tarifRoutes.js";
 import { createApiRouter } from "./interfaces/http/routes/apiRouter.js";
 
 export async function createContainer() {
-  // 1. MySQL Connection Pool
-  const pool = await getPool();
+  const userRepository = new MysqlUserRepository(prisma);
+  const deliveryOrderRepository = new MysqlDeliveryOrderRepository(prisma);
+  const invoiceRepository = new MysqlInvoiceRepository(prisma);
+  const tarifRepository = new MysqlTarifRepository(prisma);
 
-  // 2. Repositories (MySQL)
-  const userRepository = new MysqlUserRepository(pool);
-  const deliveryOrderRepository = new MysqlDeliveryOrderRepository(pool);
-  const invoiceRepository = new MysqlInvoiceRepository(pool);
-  const tarifRepository = new MysqlTarifRepository(pool);
-
-  // 3. Services
   const jwtService = new JwtService();
-
-  // 4. Middlewares
   const authMiddleware = createAuthMiddleware(jwtService, userRepository);
   const roleMiddleware = createRoleMiddleware;
 
-  // 5. Use Cases
   const registerUseCase = new RegisterUseCase(userRepository);
   const loginUseCase = new LoginUseCase(userRepository, jwtService);
   const getProfileUseCase = new GetProfileUseCase(userRepository);
@@ -74,6 +65,9 @@ export async function createContainer() {
   const createDeliveryOrderUseCase = new CreateDeliveryOrderUseCase(deliveryOrderRepository, tarifRepository);
   const getDeliveryOrdersUseCase = new GetDeliveryOrdersUseCase(deliveryOrderRepository);
   const getDeliveryOrderByIdUseCase = new GetDeliveryOrderByIdUseCase(deliveryOrderRepository);
+  const updateDeliveryOrderUseCase = new UpdateDeliveryOrderUseCase(deliveryOrderRepository);
+  const reviseDeliveryOrderUseCase = new ReviseDeliveryOrderUseCase(deliveryOrderRepository);
+  const deleteDeliveryOrderUseCase = new DeleteDeliveryOrderUseCase(deliveryOrderRepository);
   const approveDeliveryOrderUseCase = new ApproveDeliveryOrderUseCase(deliveryOrderRepository);
   const rejectDeliveryOrderUseCase = new RejectDeliveryOrderUseCase(deliveryOrderRepository);
   const reportDeliveryUseCase = new ReportDeliveryUseCase(deliveryOrderRepository);
@@ -90,13 +84,17 @@ export async function createContainer() {
   const getTarifListUseCase = new GetTarifListUseCase(tarifRepository);
   const getTarifByIdUseCase = new GetTarifByIdUseCase(tarifRepository);
   const createTarifUseCase = new CreateTarifUseCase(tarifRepository);
+  const updateTarifUseCase = new UpdateTarifUseCase(tarifRepository);
+  const deleteTarifUseCase = new DeleteTarifUseCase(tarifRepository);
 
-  // 6. Controllers
   const authController = new AuthController(registerUseCase, loginUseCase, getProfileUseCase);
   const deliveryOrderController = new DeliveryOrderController({
     createDeliveryOrderUseCase,
     getDeliveryOrdersUseCase,
     getDeliveryOrderByIdUseCase,
+    updateDeliveryOrderUseCase,
+    reviseDeliveryOrderUseCase,
+    deleteDeliveryOrderUseCase,
     approveDeliveryOrderUseCase,
     rejectDeliveryOrderUseCase,
     reportDeliveryUseCase,
@@ -111,9 +109,14 @@ export async function createContainer() {
     getInvoiceByIdUseCase,
     updateInvoiceStatusUseCase
   );
-  const tarifController = new TarifController(getTarifListUseCase, getTarifByIdUseCase, createTarifUseCase);
+  const tarifController = new TarifController(
+    getTarifListUseCase,
+    getTarifByIdUseCase,
+    createTarifUseCase,
+    updateTarifUseCase,
+    deleteTarifUseCase
+  );
 
-  // 7. Routes
   const authRoutes = createAuthRoutes(authController, authMiddleware);
   const deliveryOrderRoutes = createDeliveryOrderRoutes(deliveryOrderController, authMiddleware, roleMiddleware);
   const invoiceRoutes = createInvoiceRoutes(invoiceController, authMiddleware);
@@ -127,7 +130,7 @@ export async function createContainer() {
   });
 
   return {
-    pool,
+    prisma,
     userRepository,
     deliveryOrderRepository,
     invoiceRepository,

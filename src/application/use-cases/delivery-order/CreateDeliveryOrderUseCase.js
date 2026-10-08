@@ -15,21 +15,6 @@ export class CreateDeliveryOrderUseCase {
       throw err;
     }
 
-    const itemsBarang = Array.isArray(input.itemsBarang)
-      ? input.itemsBarang.filter(
-          (item) =>
-            item &&
-            typeof item.namaBarang === "string" &&
-            item.namaBarang.trim() &&
-            Number(item.jumlah) > 0
-        )
-      : [];
-    if (itemsBarang.length === 0) {
-      const err = new Error("Minimal satu rincian barang dengan jumlah yang valid wajib diisi");
-      err.statusCode = 400;
-      throw err;
-    }
-
     const tarif = await this.tarifRepository.findById(input.tarifId);
     if (!tarif) {
       const err = new Error("Data tarif tujuan tidak ditemukan");
@@ -48,13 +33,13 @@ export class CreateDeliveryOrderUseCase {
       tanggalKirim: input.tanggalKirim || now,
 
       // Schedule & Armada
-      noSchedule: "",
-      tglSchedule: "",
-      tipeMobilRit: "",
+      noSchedule: input.noSchedule || "",
+      tglSchedule: input.tglSchedule || "",
+      tipeMobilRit: input.tipeMobilRit || "",
       gudangAsal: input.gudangAsal || "GUDANG PUSAT - KARAWANG",
-      namaSupir: "",
+      namaSupir: input.namaSupir || "",
       noHpSupir: input.noHpSupir || "",
-      noPolisiKendaraan: "",
+      noPolisiKendaraan: input.noPolisiKendaraan || "",
       jenisKendaraan: input.jenisKendaraan || "Mobil CDD 8 Ton",
 
       // Dokumen Surat Jalan Perusahaan (Pabrik)
@@ -67,27 +52,22 @@ export class CreateDeliveryOrderUseCase {
       kecamatan: input.kecamatan || "",
       alamatLengkapTujuan: input.alamatLengkapTujuan || "",
       noHpPenerima: input.noHpPenerima || "",
-      keteranganDoc: input.keteranganDoc || input.catatanBarang || "",
+      keteranganDoc: input.keteranganDoc || "",
 
       // Tarif & Lokasi
       tarifId: tarif.id,
       areaDistribusi: tarif.areaDistribusi,
       tujuanKirim: tarif.tujuanKirim,
-      biayaEkspedisi: tarif.total,
-      pph2Persen: 2,
-      totalSetelahPPh: tarif.totalSetelahPPh,
+      biayaEkspedisi: Number(tarif.total || 0),
+      pph2Persen: 0,
+      totalSetelahPPh: Number(tarif.total || 0),
 
-      // Produk / Muatan
-      itemsBarang,
-      namaBarang: input.namaBarang || "",
-      jumlahKoli: itemsBarang.reduce((total, item) => total + Number(item.jumlah), 0),
-      totalNilaiBarang: itemsBarang.reduce(
-        (total, item) =>
-          total + Number(item.jumlah) * (Number(item.hargaSatuan) || 0),
-        0
-      ),
-      beratBarangKg: Number(input.beratBarangKg || 0),
-      catatanBarang: input.catatanBarang || "",
+      itemsBarang: [],
+      namaBarang: "",
+      jumlahKoli: 0,
+      totalNilaiBarang: 0,
+      beratBarangKg: 0,
+      catatanBarang: "",
 
       status: StatusDO.DRAFT,
       dibuatOleh: {

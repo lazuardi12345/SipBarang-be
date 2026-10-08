@@ -12,7 +12,7 @@ async function start() {
       console.log(`🚀 Delivery Order Backend (Express.js)`);
       console.log(`📡 URL     : http://localhost:${PORT}`);
       console.log(`🎯 API Base: http://localhost:${PORT}/api`);
-      console.log(`🛡️  Arch   : Clean Architecture + MySQL`);
+      console.log(`🛠️  Arch   : Clean Architecture + MySQL + Prisma-ready`);
       console.log(`=========================================`);
     });
 
@@ -25,7 +25,7 @@ async function start() {
       });
     });
   } catch (err) {
-    console.error("❌ Gagal memulai server:", err.message);
+    console.error("Gagal memulai server:", err.message);
     console.error("   Pastikan MySQL berjalan di port", process.env.DB_PORT || 3307);
     process.exit(1);
   }

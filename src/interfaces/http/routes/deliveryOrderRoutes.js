@@ -17,6 +17,11 @@ export function createDeliveryOrderRoutes(deliveryOrderController, authMiddlewar
   // Create new delivery order
   router.post("/", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.create);
 
+  // Edit / revise a submitted order
+  router.patch("/:id", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.update);
+  router.patch("/:id/revise", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.revise);
+  router.delete("/:id", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.remove);
+
   // Satukan beberapa tujuan ke dalam 1 kali jalan armada (Rit)
   router.post("/batch/consolidate-run", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.consolidateRun);
 

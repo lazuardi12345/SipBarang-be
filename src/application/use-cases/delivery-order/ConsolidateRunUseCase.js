@@ -22,13 +22,19 @@ export class ConsolidateRunUseCase {
     orderDocumentData = {},
     submitToDirector = false,
   }) {
+    const normalizedNoSchedule = String(noSchedule ?? "").trim();
+    const normalizedTglSchedule = tglSchedule ?? "";
+    const normalizedNamaSupir = String(namaSupir ?? "").trim();
+    const normalizedNoPolisi = String(noPolisiKendaraan ?? "").trim();
+    const normalizedTipeMobilRit = String(tipeMobilRit ?? "").trim();
+
     if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
       const err = new Error("Pilih minimal satu pengiriman untuk disatukan dalam satu kali jalan");
       err.statusCode = 400;
       throw err;
     }
 
-    if (!noSchedule?.trim() || !tglSchedule || !tipeMobilRit?.trim() || !namaSupir?.trim() || !noPolisiKendaraan?.trim()) {
+    if (!normalizedNoSchedule || !normalizedTglSchedule || !normalizedTipeMobilRit || !normalizedNamaSupir || !normalizedNoPolisi) {
       const err = new Error("Nomor/tanggal schedule, tipe mobil/rit, nama supir, dan nomor polisi wajib diisi");
       err.statusCode = 400;
       throw err;
@@ -62,12 +68,12 @@ export class ConsolidateRunUseCase {
     for (const { order, doc } of orders) {
       const updated = {
         ...order,
-        noSchedule: noSchedule.trim(),
-        tglSchedule: tglSchedule || order.tglSchedule,
-        namaSupir: namaSupir || order.namaSupir,
+        noSchedule: normalizedNoSchedule,
+        tglSchedule: normalizedTglSchedule || order.tglSchedule,
+        namaSupir: normalizedNamaSupir || order.namaSupir,
         noHpSupir: noHpSupir !== undefined ? noHpSupir : order.noHpSupir,
-        noPolisiKendaraan: noPolisiKendaraan || order.noPolisiKendaraan,
-        tipeMobilRit: tipeMobilRit || order.tipeMobilRit,
+        noPolisiKendaraan: normalizedNoPolisi || order.noPolisiKendaraan,
+        tipeMobilRit: normalizedTipeMobilRit || order.tipeMobilRit,
         gudangAsal: gudangAsal || order.gudangAsal,
         noDocPerusahaan: (doc.noDocPerusahaan || order.noDocPerusahaan).trim(),
         tglDocPerusahaan: doc.tglDocPerusahaan || order.tglDocPerusahaan,

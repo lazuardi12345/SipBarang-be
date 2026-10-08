@@ -3,20 +3,12 @@ import cors from "cors";
 import morgan from "morgan";
 import { createContainer } from "./container.js";
 import { errorHandler } from "./infrastructure/http/middlewares/errorMiddleware.js";
+import { addDefaultCorsOrigins, env } from "./config/env.js";
 
-export async function createApp() {
-  const app = express();
-  const container = await createContainer();
-  const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+function buildCorsOptions() {
+  const allowedOrigins = addDefaultCorsOrigins(env.corsOrigins);
 
-  if (!allowedOrigins.includes("https://sip-barang-fe.vercel.app")) {
-    allowedOrigins.push("https://sip-barang-fe.vercel.app");
-  }
-
-  const corsOptions = {
+  return {
     origin(origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -28,18 +20,21 @@ export async function createApp() {
     credentials: true,
     optionsSuccessStatus: 204,
   };
+}
 
-  // Global Middlewares
+export async function createApp() {
+  const app = express();
+  const container = await createContainer();
+  const corsOptions = buildCorsOptions();
+
   app.use(cors(corsOptions));
   app.options("*", cors(corsOptions));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  app.use(morgan("dev"));
+  app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 
-  // API Mount
   app.use("/api", container.apiRouter);
 
-  // 404 Handler
   app.use((req, res) => {
     res.status(404).json({
       success: false,
@@ -47,7 +42,6 @@ export async function createApp() {
     });
   });
 
-  // Global Error Handler
   app.use(errorHandler);
 
   return { app, container };
