@@ -38,8 +38,8 @@ export class GenerateInvoiceUseCase {
       }
 
       const biayaEkspedisi = Number(order.biayaEkspedisi || 0);
-      const pph2 = biayaEkspedisi * 0.02;
-      const totalSetelahPPh = biayaEkspedisi - pph2;
+      const pph2 = Number(order.pph2Persen ?? Math.round(biayaEkspedisi * 0.02));
+      const totalSetelahPPh = Number(order.totalSetelahPPh ?? (biayaEkspedisi - pph2));
 
       items.push({
         deliveryOrderId: order.id,
@@ -67,8 +67,8 @@ export class GenerateInvoiceUseCase {
     }
 
     const subtotal = items.reduce((sum, item) => sum + Number(item.biayaEkspedisi || 0), 0);
-    const totalPPh2 = subtotal * 0.02;
-    const totalTagihan = subtotal - totalPPh2;
+    const totalPPh2 = items.reduce((sum, item) => sum + Number(item.pph2 || 0), 0);
+    const totalTagihan = items.reduce((sum, item) => sum + Number(item.totalSetelahPPh || 0), 0);
 
     const requestedNoInvoice = typeof input.noInvoice === "string" ? input.noInvoice.trim() : "";
     const existingInvoices = await this.invoiceRepository.list();

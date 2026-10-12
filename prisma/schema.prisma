@@ -72,6 +72,8 @@ model DeliveryOrder {
   areaDistribusi      String?                  @map("area_distribusi") @db.VarChar(200)
   tujuanKirim         String?                  @map("tujuan_kirim") @db.VarChar(200)
   biayaEkspedisi      Decimal                  @default(0) @map("biaya_ekspedisi") @db.Decimal(15, 2)
+  pph2                Decimal?                 @default(0) @map("pph_2") @db.Decimal(15, 2)
+  totalSetelahPPh     Decimal?                 @default(0) @map("total_setelah_pph") @db.Decimal(15, 2)
   itemsBarang         Json?                    @map("items_barang")
   namaBarang          String?                  @map("nama_barang") @db.Text
   jumlahKoli          Int                      @default(0) @map("jumlah_koli")

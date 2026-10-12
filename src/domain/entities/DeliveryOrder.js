@@ -47,8 +47,8 @@ export class DeliveryOrder {
     this.areaDistribusi = data.areaDistribusi || "";
     this.tujuanKirim = data.tujuanKirim || "";
     this.biayaEkspedisi = Number(data.biayaEkspedisi || 0);
-    this.pph2Persen = Number(data.pph2Persen || 0);
-    this.totalSetelahPPh = Number(data.totalSetelahPPh ?? data.biayaEkspedisi ?? 0);
+    this.pph2Persen = Number(data.pph2Persen ?? Math.round(this.biayaEkspedisi * 0.02));
+    this.totalSetelahPPh = Number(data.totalSetelahPPh ?? (this.biayaEkspedisi - this.pph2Persen));
 
     // this.itemsBarang = [];
     // this.namaBarang = "";

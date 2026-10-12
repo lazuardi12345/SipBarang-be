@@ -49,6 +49,27 @@ async function migrate() {
     }
   }
 
+  // 4. Pastikan kolom pph_2 dan total_setelah_pph tersinkronisasi di tabel delivery_orders
+  try {
+    const [colsPph] = await conn.query("SHOW COLUMNS FROM `delivery_orders` LIKE 'pph_2'");
+    if (colsPph.length === 0) {
+      await conn.query("ALTER TABLE `delivery_orders` ADD COLUMN `pph_2` DECIMAL(15,2) NOT NULL DEFAULT 0 AFTER `biaya_ekspedisi`");
+      console.log("✅ Kolom 'pph_2' berhasil ditambahkan ke tabel delivery_orders.");
+    } else {
+      console.log("✅ Kolom 'pph_2' sudah tersedia di tabel delivery_orders.");
+    }
+
+    const [colsTotal] = await conn.query("SHOW COLUMNS FROM `delivery_orders` LIKE 'total_setelah_pph'");
+    if (colsTotal.length === 0) {
+      await conn.query("ALTER TABLE `delivery_orders` ADD COLUMN `total_setelah_pph` DECIMAL(15,2) NOT NULL DEFAULT 0");
+      console.log("✅ Kolom 'total_setelah_pph' berhasil ditambahkan ke tabel delivery_orders.");
+    } else {
+      console.log("✅ Kolom 'total_setelah_pph' sudah tersedia di tabel delivery_orders.");
+    }
+  } catch (err) {
+    console.log("ℹ️ Sinkronisasi kolom delivery_orders:", err.message);
+  }
+
   await conn.end();
   console.log("\n🎉 Migrasi selesai! Database siap digunakan.\n");
 }

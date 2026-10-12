@@ -68,8 +68,8 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       areaDistribusi: row.areaDistribusi,
       tujuanKirim: row.tujuanKirim,
       biayaEkspedisi: Number(row.biayaEkspedisi || 0),
-      pph2Persen: Number(this._firstDefined(row.pph2Persen, row.pph2, 0) || 0),
-      totalSetelahPPh: Number(this._firstDefined(row.totalSetelahPPh, row.totalSetelahPph, row.totalSetAfterPPh, row.biayaEkspedisi, 0) || 0),
+      pph2Persen: Number(this._firstDefined(row.pph2Persen, row.pph2, Math.round(Number(row.biayaEkspedisi || 0) * 0.02)) || 0),
+      totalSetelahPPh: Number(this._firstDefined(row.totalSetelahPPh, row.totalSetelahPph, row.totalSetAfterPPh, Number(row.biayaEkspedisi || 0) - Math.round(Number(row.biayaEkspedisi || 0) * 0.02)) || 0),
 
 
       status: row.status,
@@ -102,6 +102,8 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       areaDistribusi: order.areaDistribusi || null,
       tujuanKirim: order.tujuanKirim || null,
       biayaEkspedisi: Number(order.biayaEkspedisi || 0),
+      pph2: Number(order.pph2Persen ?? Math.round(Number(order.biayaEkspedisi || 0) * 0.02)),
+      totalSetelahPPh: Number(order.totalSetelahPPh ?? (Number(order.biayaEkspedisi || 0) - Math.round(Number(order.biayaEkspedisi || 0) * 0.02))),
       status: order.status || "DRAFT",
       dibuatOleh: order.dibuatOleh || null,
     };
