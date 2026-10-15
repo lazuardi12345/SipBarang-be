@@ -12,10 +12,42 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
     this.itemRepository = new InvoiceItemRepository(prismaClient);
   }
 
-  _toEntity(row) {
+  async _toEntity(row) {
     if (!row) return null;
 
-    const items = Array.isArray(row.items) ? row.items : Array.isArray(row.invoiceItems) ? row.invoiceItems : [];
+    const storedItems = Array.isArray(row.items)
+      ? row.items
+      : Array.isArray(row.invoiceItems)
+        ? row.invoiceItems
+        : [];
+    const deliveryOrderIds = [...new Set(
+      storedItems.map((item) => item.deliveryOrderId).filter(Boolean)
+    )];
+    const deliveryOrders = deliveryOrderIds.length > 0
+      ? await this.prisma.deliveryOrder.findMany({
+          where: { id: { in: deliveryOrderIds } },
+          include: { schedule: true, document: true },
+        })
+      : [];
+    const orderById = new Map(
+      deliveryOrders.map((order) => [order.id, order])
+    );
+    const items = storedItems.map((item) => {
+      const order = orderById.get(item.deliveryOrderId) || {};
+      const schedule = order.schedule || {};
+      const document = order.document || {};
+      return {
+        ...item,
+        namaBarang:
+          (item.namaBarang && item.namaBarang !== "-" ? item.namaBarang : "") ||
+          document.keteranganDoc ||
+          item.namaBarang,
+        tujuanKirim: item.tujuanKirim || order.tujuanKirim,
+        areaDistribusi: item.areaDistribusi || order.areaDistribusi,
+        noSchedule: schedule.noSchedule || "-",
+        tipeMobilRit: schedule.tipeMobilRit || "1",
+      };
+    });
 
     return new Invoice({
       id: row.id,
@@ -30,6 +62,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
       totalTagihan: Number(row.totalTagihan || 0),
       status: row.status,
       dibuatOleh: row.dibuatOleh,
+      verificationToken: row.verificationToken,
       createdAt: row.createdAt?.toISOString?.() || row.createdAt,
       updatedAt: row.updatedAt?.toISOString?.() || row.updatedAt,
     });
@@ -47,6 +80,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
       totalTagihan: Number(invoice.totalTagihan || invoice.totalBersih || 0),
       status: invoice.status || "BELUM_LUNAS",
       dibuatOleh: invoice.dibuatOleh || null,
+      verificationToken: invoice.verificationToken || null,
     };
 
     Object.keys(data).forEach((key) => {
@@ -111,6 +145,14 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
     return this._toEntity(row);
   }
 
+  async findByVerificationToken(verificationToken) {
+    const row = await this.prisma.invoice.findUnique({
+      where: { verificationToken },
+      include: { items: true },
+    });
+    return this._toEntity(row);
+  }
+
   async list() {
     const rows = await this.prisma.invoice.findMany({
       orderBy: { createdAt: "desc" },
@@ -118,7 +160,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
         items: true,
       },
     });
-    return rows.map((r) => this._toEntity(r));
+    return Promise.all(rows.map((row) => this._toEntity(row)));
   }
 
   async count() {

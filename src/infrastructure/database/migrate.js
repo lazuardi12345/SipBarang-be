@@ -70,6 +70,97 @@ async function migrate() {
     console.log("ℹ️ Sinkronisasi kolom delivery_orders:", err.message);
   }
 
+  try {
+    const [driverExpenseColumn] = await conn.query(
+      "SHOW COLUMNS FROM `delivery_orders` LIKE 'uang_jalan_supir'"
+    );
+    if (driverExpenseColumn.length === 0) {
+      await conn.query(
+        "ALTER TABLE `delivery_orders` ADD COLUMN `uang_jalan_supir` DECIMAL(15,2) NULL AFTER `biaya_ekspedisi`"
+      );
+      console.log("✅ Kolom 'uang_jalan_supir' berhasil ditambahkan ke tabel delivery_orders.");
+    }
+
+    await conn.query(
+      `UPDATE \`delivery_orders\` AS d
+       INNER JOIN \`tarifs\` AS t ON t.\`id\` = d.\`tarif_id\`
+       SET d.\`uang_jalan_supir\` = t.\`total_setelah_pph\`
+       WHERE d.\`uang_jalan_supir\` IS NULL`
+    );
+    await conn.query(
+      `UPDATE \`delivery_orders\` AS d
+       INNER JOIN \`tarifs\` AS t
+         ON UPPER(TRIM(t.\`area_distribusi\`)) = UPPER(TRIM(d.\`area_distribusi\`))
+        AND UPPER(TRIM(t.\`tujuan_kirim\`)) = UPPER(TRIM(d.\`tujuan_kirim\`))
+       SET d.\`uang_jalan_supir\` = t.\`total_setelah_pph\`
+       WHERE d.\`uang_jalan_supir\` IS NULL`
+    );
+    console.log("✅ Uang jalan DO lama disinkronkan dari master tarif.");
+  } catch (err) {
+    console.error("❌ Sinkronisasi uang jalan sopir gagal:", err.message);
+    await conn.end();
+    throw err;
+  }
+
+  try {
+    const [lembarColumn] = await conn.query(
+      "SHOW COLUMNS FROM `delivery_order_documents` LIKE 'lembar'"
+    );
+    if (lembarColumn.length === 0) {
+      await conn.query(
+        "ALTER TABLE `delivery_order_documents` ADD COLUMN `lembar` VARCHAR(100) NULL AFTER `keterangan_doc`"
+      );
+      console.log("✅ Kolom 'lembar' berhasil ditambahkan ke tabel delivery_order_documents.");
+    } else {
+      console.log("✅ Kolom 'lembar' sudah tersedia di tabel delivery_order_documents.");
+    }
+  } catch (err) {
+    console.error("❌ Sinkronisasi kolom lembar gagal:", err.message);
+    await conn.end();
+    throw err;
+  }
+
+  try {
+    await conn.query(
+      "ALTER TABLE `delivery_order_reports` MODIFY COLUMN `bukti_pengiriman_url` LONGTEXT NULL"
+    );
+    console.log("✅ Kolom bukti foto pengiriman mendukung file foto berukuran besar.");
+  } catch (err) {
+    console.error("❌ Sinkronisasi kolom bukti foto gagal:", err.message);
+    await conn.end();
+    throw err;
+  }
+
+  try {
+    const [tokenColumn] = await conn.query(
+      "SHOW COLUMNS FROM `invoices` LIKE 'verification_token'"
+    );
+    if (tokenColumn.length === 0) {
+      await conn.query(
+        "ALTER TABLE `invoices` ADD COLUMN `verification_token` VARCHAR(64) NULL AFTER `dibuat_oleh`"
+      );
+      console.log("✅ Kolom 'verification_token' berhasil ditambahkan ke tabel invoices.");
+    }
+
+    await conn.query(
+      "UPDATE `invoices` SET `verification_token` = LOWER(REPLACE(UUID(), '-', '')) WHERE `verification_token` IS NULL OR `verification_token` = ''"
+    );
+
+    const [tokenIndex] = await conn.query(
+      "SHOW INDEX FROM `invoices` WHERE `Key_name` = 'uq_invoices_verification_token'"
+    );
+    if (tokenIndex.length === 0) {
+      await conn.query(
+        "ALTER TABLE `invoices` ADD UNIQUE INDEX `uq_invoices_verification_token` (`verification_token`)"
+      );
+    }
+    console.log("✅ Token verifikasi invoice siap.");
+  } catch (err) {
+    console.error("❌ Sinkronisasi token verifikasi invoice gagal:", err.message);
+    await conn.end();
+    throw err;
+  }
+
   await conn.end();
   console.log("\n🎉 Migrasi selesai! Database siap digunakan.\n");
 }

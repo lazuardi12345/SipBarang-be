@@ -9,13 +9,26 @@ export class DeliveryOrderConfirmationRepository {
 
   toPrismaData(order = {}) {
     const payload = {
-      userId: order.userId || null,
+      userId: order.konfirmasiUserId || order.userId || null,
       catatanKonfirmasiDirektur: order.catatanKonfirmasiDirektur || null,
-      confirmedAt: order.confirmedAt || null,
+      confirmedAt: order.dikonfirmasiPada || order.confirmedAt || null,
     };
 
-    return Object.values(payload).some((value) => value !== null && value !== undefined && value !== "")
-      ? payload
-      : null;
+    if (!payload.userId || !payload.confirmedAt) {
+      const err = new Error("ID Direktur dan waktu konfirmasi wajib tersedia untuk menyimpan konfirmasi");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    return payload;
+  }
+
+  async create(orderId, order) {
+    return this.prisma.deliveryOrderConfirmation.create({
+      data: {
+        orderId,
+        ...this.toPrismaData(order),
+      },
+    });
   }
 }

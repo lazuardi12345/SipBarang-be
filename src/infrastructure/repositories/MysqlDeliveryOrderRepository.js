@@ -7,6 +7,7 @@ import { DeliveryOrder } from "../../domain/entities/DeliveryOrder.js";
 import { DeliveryOrderScheduleRepository } from "./delivery-order/DeliveryOrderScheduleRepository.js";
 import { DeliveryOrderDocumentRepository } from "./delivery-order/DeliveryOrderDocumentRepository.js";
 import { DeliveryOrderReportRepository } from "./delivery-order/DeliveryOrderReportRepository.js";
+import { DeliveryOrderConfirmationRepository } from "./delivery-order/DeliveryOrderConfirmationRepository.js";
 
 export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
   constructor(prismaClient) {
@@ -15,12 +16,13 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
     this.scheduleRepository = new DeliveryOrderScheduleRepository(prismaClient);
     this.documentRepository = new DeliveryOrderDocumentRepository(prismaClient);
     this.reportRepository = new DeliveryOrderReportRepository(prismaClient);
+    this.confirmationRepository = new DeliveryOrderConfirmationRepository(prismaClient);
     this.include = {
       schedule: true,
       document: true,
-      reports: true,
+      reports: { orderBy: { createdAt: "desc" } },
       approvals: true,
-      confirmations: true,
+      confirmations: { orderBy: { createdAt: "desc" } },
     };
   }
 
@@ -32,12 +34,51 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
     return values.find((value) => value !== undefined && value !== null && value !== "");
   }
 
-  _toEntity(row) {
+  async _toEntity(row) {
     if (!row) return null;
 
     const schedule = row.schedule || {};
     const document = row.document || {};
-    const report = Array.isArray(row.reports) ? row.reports[0] || {} : {};
+    const reports = Array.isArray(row.reports)
+      ? [...row.reports].sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
+          return dateB - dateA;
+        })
+      : [];
+    const latestReport = reports[0] || {};
+    const reportWithProof = reports.find((item) => item.buktiPengirimanUrl);
+    const report = {
+      ...latestReport,
+      buktiPengirimanUrl:
+        latestReport.buktiPengirimanUrl || reportWithProof?.buktiPengirimanUrl,
+    };
+    const confirmation = Array.isArray(row.confirmations)
+      ? [...row.confirmations].sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.confirmedAt || 0).getTime();
+          const dateB = new Date(b.createdAt || b.confirmedAt || 0).getTime();
+          return dateB - dateA;
+        })[0] || {}
+      : {};
+    let uangJalanSupir = row.uangJalanSupir;
+    if (uangJalanSupir == null) {
+      const tarif = row.tarifId
+        ? await this.prisma.tarif.findUnique({
+            where: { id: row.tarifId },
+            select: { totalSetelahPPh: true },
+          })
+        : null;
+      const matchingTarif = tarif || (row.areaDistribusi && row.tujuanKirim
+        ? await this.prisma.tarif.findFirst({
+            where: {
+              areaDistribusi: row.areaDistribusi,
+              tujuanKirim: row.tujuanKirim,
+            },
+            select: { totalSetelahPPh: true },
+          })
+        : null);
+      uangJalanSupir = matchingTarif?.totalSetelahPPh;
+    }
 
     return new DeliveryOrder({
       id: row.id,
@@ -63,6 +104,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       alamatLengkapTujuan: this._firstDefined(row.alamatLengkapTujuan, document.alamatLengkapTujuan),
       noHpPenerima: this._firstDefined(row.noHpPenerima, document.noHpPenerima),
       keteranganDoc: this._firstDefined(row.keteranganDoc, document.keteranganDoc),
+      lembar: document.lembar,
 
       tarifId: row.tarifId,
       areaDistribusi: row.areaDistribusi,
@@ -70,6 +112,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       biayaEkspedisi: Number(row.biayaEkspedisi || 0),
       pph2Persen: Number(this._firstDefined(row.pph2Persen, row.pph2, Math.round(Number(row.biayaEkspedisi || 0) * 0.02)) || 0),
       totalSetelahPPh: Number(this._firstDefined(row.totalSetelahPPh, row.totalSetelahPph, row.totalSetAfterPPh, Number(row.biayaEkspedisi || 0) - Math.round(Number(row.biayaEkspedisi || 0) * 0.02)) || 0),
+      uangJalanSupir: uangJalanSupir == null ? null : Number(uangJalanSupir),
 
 
       status: row.status,
@@ -84,9 +127,9 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       buktiPengirimanUrl: this._firstDefined(row.buktiPengirimanUrl, report.buktiPengirimanUrl),
       tanggalDiterima: this._toDateString(this._firstDefined(row.tanggalDiterima, report.tanggalDiterima)),
 
-      dikonfirmasiOleh: row.dikonfirmasiOleh,
-      dikonfirmasiPada: this._toDateString(row.dikonfirmasiPada),
-      catatanKonfirmasiDirektur: row.catatanKonfirmasiDirektur,
+      dikonfirmasiOleh: this._firstDefined(row.dikonfirmasiOleh, confirmation.userId),
+      dikonfirmasiPada: this._toDateString(this._firstDefined(row.dikonfirmasiPada, confirmation.confirmedAt)),
+      catatanKonfirmasiDirektur: this._firstDefined(row.catatanKonfirmasiDirektur, confirmation.catatanKonfirmasiDirektur),
 
       createdAt: this._toDateString(row.createdAt),
       updatedAt: this._toDateString(row.updatedAt),
@@ -107,6 +150,14 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       status: order.status || "DRAFT",
       dibuatOleh: order.dibuatOleh || null,
     };
+    const deliveryOrderFields =
+      this.prisma._runtimeDataModel?.models?.DeliveryOrder?.fields || [];
+    if (
+      order.uangJalanSupir != null &&
+      deliveryOrderFields.some((field) => field.name === "uangJalanSupir")
+    ) {
+      data.uangJalanSupir = Number(order.uangJalanSupir);
+    }
 
     return Object.fromEntries(
       Object.entries(data).filter(([, value]) => value !== undefined)
@@ -159,7 +210,15 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       include: this.include,
     });
 
-    return this._toEntity(row);
+    if (order.status === "TERKIRIM" && existing.status !== "TERKIRIM") {
+      await this.confirmationRepository.create(order.id, order);
+    }
+    await this.reportRepository.upsert(order.id, order);
+    const updatedRow = await this.prisma.deliveryOrder.findUnique({
+      where: { id: order.id },
+      include: this.include,
+    });
+    return this._toEntity(updatedRow || row);
   }
 
   async findById(id) {
@@ -175,7 +234,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       orderBy: { createdAt: "desc" },
       include: this.include,
     });
-    return rows.map((row) => this._toEntity(row));
+    return Promise.all(rows.map((row) => this._toEntity(row)));
   }
 
   async delete(id) {
@@ -192,7 +251,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       orderBy: { createdAt: "desc" },
       include: this.include,
     });
-    return rows.map((row) => this._toEntity(row));
+    return Promise.all(rows.map((row) => this._toEntity(row)));
   }
 
   async count() {

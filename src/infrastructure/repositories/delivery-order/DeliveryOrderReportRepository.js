@@ -37,10 +37,19 @@ export class DeliveryOrderReportRepository {
     const data = this.toPrismaData(order);
     if (!data) return null;
 
-    return this.prisma.deliveryOrderReport.upsert({
+    const existing = await this.prisma.deliveryOrderReport.findFirst({
       where: { orderId },
-      create: { orderId, ...data },
-      update: data,
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) {
+      return this.prisma.deliveryOrderReport.update({
+        where: { id: existing.id },
+        data,
+      });
+    }
+
+    return this.prisma.deliveryOrderReport.create({
+      data: { orderId, ...data },
     });
   }
 }

@@ -35,6 +35,7 @@ export class DeliveryOrderDocumentRepository {
       alamatLengkapTujuan: order.alamatLengkapTujuan || null,
       noHpPenerima: order.noHpPenerima || null,
       keteranganDoc: order.keteranganDoc || null,
+      lembar: order.lembar || null,
     };
 
     return Object.values(payload).some((value) => value !== null && value !== undefined && value !== "")
@@ -54,6 +55,7 @@ export class DeliveryOrderDocumentRepository {
       alamatLengkapTujuan: this._firstDefined(row.alamatLengkapTujuan),
       noHpPenerima: this._firstDefined(row.noHpPenerima),
       keteranganDoc: this._firstDefined(row.keteranganDoc),
+      lembar: this._firstDefined(row.lembar),
     };
   }
 

@@ -9,6 +9,12 @@ export class GenerateInvoiceUseCase {
   }
 
   async execute(input, user) {
+    if (user?.role !== "DIREKTUR") {
+      const err = new Error("Pembuatan invoice hanya dapat dilakukan oleh Direktur");
+      err.statusCode = 403;
+      throw err;
+    }
+
     if (!input.namaPelanggan) {
       const err = new Error("Nama pelanggan wajib diisi");
       err.statusCode = 400;
@@ -52,7 +58,7 @@ export class GenerateInvoiceUseCase {
         tanggalKirim: order.tanggalKirim,
         namaSupir: order.namaSupir || "-",
         noPolisiKendaraan: order.noPolisiKendaraan || "-",
-        namaBarang: "-",
+        namaBarang: order.keteranganDoc || "-",
         jumlahKoli: 0,
         biayaEkspedisi,
         pph2,
@@ -85,6 +91,7 @@ export class GenerateInvoiceUseCase {
 
     const invoice = new Invoice({
       id,
+      verificationToken: crypto.randomBytes(32).toString("hex"),
       noInvoice,
       tanggalInvoice: now,
       namaPelanggan: input.namaPelanggan,

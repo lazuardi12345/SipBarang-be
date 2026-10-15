@@ -29,7 +29,7 @@ export async function createApp() {
 
   app.use(cors(corsOptions));
   app.options("*", cors(corsOptions));
-  app.use(express.json());
+  app.use(express.json({ limit: "12mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 

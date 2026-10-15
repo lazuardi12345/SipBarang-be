@@ -28,9 +28,10 @@ import { AttachDocPerusahaanUseCase } from "./application/use-cases/delivery-ord
 import { SubmitToDirectorUseCase } from "./application/use-cases/delivery-order/SubmitToDirectorUseCase.js";
 import { ConfirmDeliveredUseCase } from "./application/use-cases/delivery-order/ConfirmDeliveredUseCase.js";
 import { ConsolidateRunUseCase } from "./application/use-cases/delivery-order/ConsolidateRunUseCase.js";
+import { UpdateDeliveryOrderLembarUseCase } from "./application/use-cases/delivery-order/UpdateDeliveryOrderLembarUseCase.js";
 
 import { GenerateInvoiceUseCase } from "./application/use-cases/invoice/GenerateInvoiceUseCase.js";
-import { GetInvoicesUseCase, GetInvoiceByIdUseCase, UpdateInvoiceStatusUseCase } from "./application/use-cases/invoice/GetInvoicesUseCase.js";
+import { GetInvoicesUseCase, GetInvoiceByIdUseCase, UpdateInvoiceStatusUseCase, VerifyInvoiceUseCase } from "./application/use-cases/invoice/GetInvoicesUseCase.js";
 
 import { GetTarifListUseCase, GetTarifByIdUseCase } from "./application/use-cases/tarif/GetTarifListUseCase.js";
 import { CreateTarifUseCase } from "./application/use-cases/tarif/CreateTarifUseCase.js";
@@ -75,11 +76,13 @@ export async function createContainer() {
   const submitToDirectorUseCase = new SubmitToDirectorUseCase(deliveryOrderRepository);
   const confirmDeliveredUseCase = new ConfirmDeliveredUseCase(deliveryOrderRepository);
   const consolidateRunUseCase = new ConsolidateRunUseCase(deliveryOrderRepository);
+  const updateDeliveryOrderLembarUseCase = new UpdateDeliveryOrderLembarUseCase(deliveryOrderRepository);
 
   const generateInvoiceUseCase = new GenerateInvoiceUseCase(invoiceRepository, deliveryOrderRepository);
   const getInvoicesUseCase = new GetInvoicesUseCase(invoiceRepository);
   const getInvoiceByIdUseCase = new GetInvoiceByIdUseCase(invoiceRepository);
   const updateInvoiceStatusUseCase = new UpdateInvoiceStatusUseCase(invoiceRepository);
+  const verifyInvoiceUseCase = new VerifyInvoiceUseCase(invoiceRepository);
 
   const getTarifListUseCase = new GetTarifListUseCase(tarifRepository);
   const getTarifByIdUseCase = new GetTarifByIdUseCase(tarifRepository);
@@ -102,12 +105,14 @@ export async function createContainer() {
     submitToDirectorUseCase,
     confirmDeliveredUseCase,
     consolidateRunUseCase,
+    updateDeliveryOrderLembarUseCase,
   });
   const invoiceController = new InvoiceController(
     generateInvoiceUseCase,
     getInvoicesUseCase,
     getInvoiceByIdUseCase,
-    updateInvoiceStatusUseCase
+    updateInvoiceStatusUseCase,
+    verifyInvoiceUseCase
   );
   const tarifController = new TarifController(
     getTarifListUseCase,
@@ -119,7 +124,7 @@ export async function createContainer() {
 
   const authRoutes = createAuthRoutes(authController, authMiddleware);
   const deliveryOrderRoutes = createDeliveryOrderRoutes(deliveryOrderController, authMiddleware, roleMiddleware);
-  const invoiceRoutes = createInvoiceRoutes(invoiceController, authMiddleware);
+  const invoiceRoutes = createInvoiceRoutes(invoiceController, authMiddleware, roleMiddleware);
   const tarifRoutes = createTarifRoutes(tarifController, authMiddleware, roleMiddleware);
 
   const apiRouter = createApiRouter({
@@ -127,6 +132,7 @@ export async function createContainer() {
     deliveryOrderRoutes,
     invoiceRoutes,
     tarifRoutes,
+    authMiddleware,
   });
 
   return {

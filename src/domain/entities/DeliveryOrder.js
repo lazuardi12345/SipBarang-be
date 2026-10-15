@@ -41,6 +41,7 @@ export class DeliveryOrder {
     this.alamatLengkapTujuan = data.alamatLengkapTujuan || "";
     this.noHpPenerima = data.noHpPenerima || "";
     this.keteranganDoc = data.keteranganDoc || "";
+    this.lembar = data.lembar || "";
 
     // Data Tarif & Rute (Berdasarkan Surat Kiriman Dari Karawang PT Almira Yuniar Trek)
     this.tarifId = data.tarifId;
@@ -49,6 +50,7 @@ export class DeliveryOrder {
     this.biayaEkspedisi = Number(data.biayaEkspedisi || 0);
     this.pph2Persen = Number(data.pph2Persen ?? Math.round(this.biayaEkspedisi * 0.02));
     this.totalSetelahPPh = Number(data.totalSetelahPPh ?? (this.biayaEkspedisi - this.pph2Persen));
+    this.uangJalanSupir = data.uangJalanSupir == null ? null : Number(data.uangJalanSupir);
 
     // this.itemsBarang = [];
     // this.namaBarang = "";

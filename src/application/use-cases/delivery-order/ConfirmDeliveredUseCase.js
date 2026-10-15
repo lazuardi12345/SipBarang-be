@@ -31,6 +31,7 @@ export class ConfirmDeliveredUseCase {
       ...order,
       status: StatusDO.TERKIRIM,
       dikonfirmasiOleh: direkturUser.nama || direkturUser.id,
+      konfirmasiUserId: direkturUser.id,
       dikonfirmasiPada: now,
       catatanKonfirmasiDirektur: catatan || "",
       updatedAt: now,

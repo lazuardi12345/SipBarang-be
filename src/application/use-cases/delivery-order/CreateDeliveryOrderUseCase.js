@@ -61,6 +61,7 @@ export class CreateDeliveryOrderUseCase {
       biayaEkspedisi: Number(tarif.total || 0),
       pph2Persen: Math.round(Number(tarif.total || 0) * 0.02),
       totalSetelahPPh: Number(tarif.total || 0) - Math.round(Number(tarif.total || 0) * 0.02),
+      uangJalanSupir: Number(tarif.totalSetelahPPh || 0),
 
       itemsBarang: [],
       namaBarang: "",

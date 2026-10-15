@@ -7,7 +7,7 @@ export class RegisterUseCase {
     this.userRepository = userRepository;
   }
 
-  async execute({ nama, email, password, role = UserRole.ADMIN }) {
+  async execute({ nama, email, password }) {
     if (!nama || !email || !password) {
       const err = new Error("Nama, email, dan password wajib diisi");
       err.statusCode = 400;
@@ -28,7 +28,7 @@ export class RegisterUseCase {
       nama,
       email,
       passwordHash,
-      role: role.toUpperCase() === UserRole.DIREKTUR ? UserRole.DIREKTUR : UserRole.ADMIN,
+      role: UserRole.ADMIN,
       createdAt: new Date().toISOString(),
     });
 

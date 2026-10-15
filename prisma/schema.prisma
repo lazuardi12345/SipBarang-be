@@ -74,6 +74,7 @@ model DeliveryOrder {
   biayaEkspedisi      Decimal                  @default(0) @map("biaya_ekspedisi") @db.Decimal(15, 2)
   pph2                Decimal?                 @default(0) @map("pph_2") @db.Decimal(15, 2)
   totalSetelahPPh     Decimal?                 @default(0) @map("total_setelah_pph") @db.Decimal(15, 2)
+  uangJalanSupir      Decimal?                 @map("uang_jalan_supir") @db.Decimal(15, 2)
   itemsBarang         Json?                    @map("items_barang")
   namaBarang          String?                  @map("nama_barang") @db.Text
   jumlahKoli          Int                      @default(0) @map("jumlah_koli")
@@ -127,6 +128,7 @@ model DeliveryOrderDocument {
   alamatLengkapTujuan  String?       @map("alamat_lengkap_tujuan") @db.Text
   noHpPenerima         String?       @map("no_hp_penerima") @db.VarChar(30)
   keteranganDoc        String?       @map("keterangan_doc") @db.Text
+  lembar               String?       @db.VarChar(100)
   createdAt            DateTime      @default(now()) @map("created_at")
   updatedAt            DateTime      @updatedAt @map("updated_at")
 
@@ -151,7 +153,7 @@ model DeliveryOrderReport {
   order                DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   namaPenerimaBarang   String?       @map("nama_penerima_barang") @db.VarChar(200)
   catatanPelaporan     String?       @map("catatan_pelaporan") @db.Text
-  buktiPengirimanUrl   String?       @map("bukti_pengiriman_url") @db.Text
+  buktiPengirimanUrl   String?       @map("bukti_pengiriman_url") @db.LongText
   tanggalDiterima      DateTime?     @map("tanggal_diterima")
   createdAt            DateTime      @default(now()) @map("created_at")
 
@@ -197,6 +199,7 @@ model Invoice {
   totalTagihan   Decimal      @default(0) @map("total_tagihan") @db.Decimal(15, 2)
   status         InvoiceStatus @default(BELUM_LUNAS)
   dibuatOleh     Json?        @map("dibuat_oleh")
+  verificationToken String?   @unique @map("verification_token") @db.VarChar(64)
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   items          InvoiceItem[]

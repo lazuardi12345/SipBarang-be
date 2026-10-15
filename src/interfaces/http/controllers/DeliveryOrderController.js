@@ -13,6 +13,7 @@ export class DeliveryOrderController {
     submitToDirectorUseCase,
     confirmDeliveredUseCase,
     consolidateRunUseCase,
+    updateDeliveryOrderLembarUseCase,
   }) {
     this.createDeliveryOrderUseCase = createDeliveryOrderUseCase;
     this.getDeliveryOrdersUseCase = getDeliveryOrdersUseCase;
@@ -27,6 +28,7 @@ export class DeliveryOrderController {
     this.submitToDirectorUseCase = submitToDirectorUseCase;
     this.confirmDeliveredUseCase = confirmDeliveredUseCase;
     this.consolidateRunUseCase = consolidateRunUseCase;
+    this.updateDeliveryOrderLembarUseCase = updateDeliveryOrderLembarUseCase;
   }
 
   getAll = async (req, res, next) => {
@@ -208,6 +210,22 @@ export class DeliveryOrderController {
       res.status(200).json({
         success: true,
         message: "Pengiriman berhasil disatukan dalam satu kali jalan",
+        data: updated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  updateLembar = async (req, res, next) => {
+    try {
+      const updated = await this.updateDeliveryOrderLembarUseCase.execute(
+        req.params.id,
+        req.body
+      );
+      res.status(200).json({
+        success: true,
+        message: "Kolom lembar pembukuan berhasil diperbarui",
         data: updated,
       });
     } catch (err) {

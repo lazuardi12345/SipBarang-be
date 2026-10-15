@@ -1,9 +1,10 @@
 export class InvoiceController {
-  constructor(generateInvoiceUseCase, getInvoicesUseCase, getInvoiceByIdUseCase, updateInvoiceStatusUseCase) {
+  constructor(generateInvoiceUseCase, getInvoicesUseCase, getInvoiceByIdUseCase, updateInvoiceStatusUseCase, verifyInvoiceUseCase) {
     this.generateInvoiceUseCase = generateInvoiceUseCase;
     this.getInvoicesUseCase = getInvoicesUseCase;
     this.getInvoiceByIdUseCase = getInvoiceByIdUseCase;
     this.updateInvoiceStatusUseCase = updateInvoiceStatusUseCase;
+    this.verifyInvoiceUseCase = verifyInvoiceUseCase;
   }
 
   getAll = async (req, res, next) => {
@@ -25,6 +26,15 @@ export class InvoiceController {
         success: true,
         data: invoice,
       });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  verify = async (req, res, next) => {
+    try {
+      const verification = await this.verifyInvoiceUseCase.execute(req.params.token);
+      res.status(200).json({ success: true, data: verification });
     } catch (err) {
       next(err);
     }
