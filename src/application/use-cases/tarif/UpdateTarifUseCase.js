@@ -16,7 +16,6 @@ export class UpdateTarifUseCase {
     const areaDistribusi = String(input.areaDistribusi ?? existing.areaDistribusi ?? "").trim();
     const tujuanKirim = String(input.tujuanKirim ?? existing.tujuanKirim ?? "").trim();
     const total = Number(input.total ?? existing.total ?? 0);
-    const totalSetelahPPh = Number(input.totalSetelahPPh ?? existing.totalSetelahPPh ?? total ?? 0);
 
     if (!areaDistribusi || !tujuanKirim) {
       const error = new Error("Area distribusi dan tujuan kirim wajib diisi");
@@ -24,7 +23,7 @@ export class UpdateTarifUseCase {
       throw error;
     }
 
-    if (!Number.isFinite(total) || total < 0 || !Number.isFinite(totalSetelahPPh) || totalSetelahPPh < 0) {
+    if (!Number.isFinite(total) || total < 0) {
       const error = new Error("Tarif harus berupa angka yang tidak negatif");
       error.statusCode = 400;
       throw error;
@@ -36,7 +35,6 @@ export class UpdateTarifUseCase {
         areaDistribusi,
         tujuanKirim,
         total,
-        totalSetelahPPh,
       })
     );
   }

@@ -14,6 +14,7 @@ export class DeliveryOrderController {
     confirmDeliveredUseCase,
     consolidateRunUseCase,
     updateDeliveryOrderLembarUseCase,
+    updateDeliveryOrderMdoUseCase,
   }) {
     this.createDeliveryOrderUseCase = createDeliveryOrderUseCase;
     this.getDeliveryOrdersUseCase = getDeliveryOrdersUseCase;
@@ -29,6 +30,7 @@ export class DeliveryOrderController {
     this.confirmDeliveredUseCase = confirmDeliveredUseCase;
     this.consolidateRunUseCase = consolidateRunUseCase;
     this.updateDeliveryOrderLembarUseCase = updateDeliveryOrderLembarUseCase;
+    this.updateDeliveryOrderMdoUseCase = updateDeliveryOrderMdoUseCase;
   }
 
   getAll = async (req, res, next) => {
@@ -226,6 +228,22 @@ export class DeliveryOrderController {
       res.status(200).json({
         success: true,
         message: "Kolom lembar pembukuan berhasil diperbarui",
+        data: updated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  updateMdo = async (req, res, next) => {
+    try {
+      const updated = await this.updateDeliveryOrderMdoUseCase.execute(
+        req.params.id,
+        req.body
+      );
+      res.status(200).json({
+        success: true,
+        message: "Nomor MDO berhasil diperbarui",
         data: updated,
       });
     } catch (err) {

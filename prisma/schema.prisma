@@ -53,7 +53,6 @@ model Tarif {
   areaDistribusi  String   @map("area_distribusi") @db.VarChar(200)
   tujuanKirim     String   @map("tujuan_kirim") @db.VarChar(200)
   total           Decimal  @db.Decimal(15, 2)
-  totalSetelahPPh Decimal  @map("total_setelah_pph") @db.Decimal(15, 2)
   createdAt       DateTime @default(now()) @map("created_at")
 
   @@map("tarifs")
@@ -128,6 +127,7 @@ model DeliveryOrderDocument {
   alamatLengkapTujuan  String?       @map("alamat_lengkap_tujuan") @db.Text
   noHpPenerima         String?       @map("no_hp_penerima") @db.VarChar(30)
   keteranganDoc        String?       @map("keterangan_doc") @db.Text
+  mdo                  String?       @db.VarChar(100)
   lembar               String?       @db.VarChar(100)
   createdAt            DateTime      @default(now()) @map("created_at")
   updatedAt            DateTime      @updatedAt @map("updated_at")

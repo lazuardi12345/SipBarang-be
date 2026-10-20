@@ -17,7 +17,6 @@ export class MysqlTarifRepository extends ITarifRepository {
       areaDistribusi: row.areaDistribusi,
       tujuanKirim: row.tujuanKirim,
       total: Number(row.total || 0),
-      totalSetelahPPh: Number(row.totalSetelahPPh ?? row.total ?? 0),
     });
   }
 
@@ -42,7 +41,6 @@ export class MysqlTarifRepository extends ITarifRepository {
         areaDistribusi: tarif.areaDistribusi,
         tujuanKirim: tarif.tujuanKirim,
         total: Number(tarif.total),
-        totalSetelahPPh: Number(tarif.totalSetelahPPh),
       },
     });
     return this._toEntity(row);
@@ -55,7 +53,6 @@ export class MysqlTarifRepository extends ITarifRepository {
         areaDistribusi: tarif.areaDistribusi,
         tujuanKirim: tarif.tujuanKirim,
         total: Number(tarif.total),
-        totalSetelahPPh: Number(tarif.totalSetelahPPh),
       },
     });
     return this._toEntity(row);

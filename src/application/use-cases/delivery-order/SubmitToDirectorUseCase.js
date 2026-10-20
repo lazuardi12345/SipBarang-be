@@ -33,6 +33,8 @@ export class SubmitToDirectorUseCase {
     const tipeMobilRit = String(docData.tipeMobilRit ?? order.tipeMobilRit ?? "").trim();
     const namaSupir = String(docData.namaSupir ?? order.namaSupir ?? "").trim();
     const noPolisiKendaraan = String(docData.noPolisiKendaraan ?? order.noPolisiKendaraan ?? "").trim();
+    const rawUangJalanSupir = docData.uangJalanSupir;
+    let uangJalanSupir = order.uangJalanSupir ?? null;
 
     if (!noDocPerusahaan || !tglDocPerusahaan) {
       const err = new Error("No. Doc dan tanggal surat jalan perusahaan wajib dilengkapi sebelum pengajuan");
@@ -44,6 +46,20 @@ export class SubmitToDirectorUseCase {
       err.statusCode = 400;
       throw err;
     }
+    if (rawUangJalanSupir !== undefined && rawUangJalanSupir !== null) {
+      uangJalanSupir =
+        typeof rawUangJalanSupir === "number"
+          ? rawUangJalanSupir
+          : typeof rawUangJalanSupir === "string" && rawUangJalanSupir.trim() !== ""
+          ? Number(rawUangJalanSupir)
+          : Number.NaN;
+
+      if (!Number.isFinite(uangJalanSupir) || uangJalanSupir < 0) {
+        const err = new Error("Uang jalan supir harus berupa nominal tidak negatif jika diisi");
+        err.statusCode = 400;
+        throw err;
+      }
+    }
 
     const updated = {
       ...order,
@@ -54,6 +70,7 @@ export class SubmitToDirectorUseCase {
       noPolisiKendaraan,
       noDocPerusahaan,
       tglDocPerusahaan,
+      uangJalanSupir,
       keteranganDoc: docData.keteranganDoc !== undefined ? docData.keteranganDoc : order.keteranganDoc,
       status: StatusDO.MENUNGGU_ACC,
       updatedAt: new Date().toISOString(),

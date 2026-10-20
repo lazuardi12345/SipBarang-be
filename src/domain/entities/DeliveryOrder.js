@@ -41,6 +41,7 @@ export class DeliveryOrder {
     this.alamatLengkapTujuan = data.alamatLengkapTujuan || "";
     this.noHpPenerima = data.noHpPenerima || "";
     this.keteranganDoc = data.keteranganDoc || "";
+    this.mdo = data.mdo || "";
     this.lembar = data.lembar || "";
 
     // Data Tarif & Rute (Berdasarkan Surat Kiriman Dari Karawang PT Almira Yuniar Trek)

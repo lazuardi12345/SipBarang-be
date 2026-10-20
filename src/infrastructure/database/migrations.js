@@ -33,7 +33,6 @@ export const CREATE_TARIFS_TABLE = `
     \`area_distribusi\`   VARCHAR(200)  NOT NULL,
     \`tujuan_kirim\`      VARCHAR(200)  NOT NULL,
     \`total\`             DECIMAL(15,2) NOT NULL DEFAULT 0,
-    \`total_setelah_pph\` DECIMAL(15,2) NOT NULL DEFAULT 0,
     \`created_at\`        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     INDEX idx_area (\`area_distribusi\`),
@@ -102,6 +101,7 @@ export const CREATE_DELIVERY_ORDER_DOCUMENTS_TABLE = `
     \`alamat_lengkap_tujuan\` TEXT         NULL,
     \`no_hp_penerima\`       VARCHAR(30)   NULL,
     \`keterangan_doc\`       TEXT          NULL,
+    \`mdo\`                  VARCHAR(100)  NULL,
     \`lembar\`               VARCHAR(100)  NULL,
     \`created_at\`           DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     \`updated_at\`           DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

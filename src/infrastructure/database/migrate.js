@@ -80,24 +80,37 @@ async function migrate() {
       );
       console.log("✅ Kolom 'uang_jalan_supir' berhasil ditambahkan ke tabel delivery_orders.");
     }
-
-    await conn.query(
-      `UPDATE \`delivery_orders\` AS d
-       INNER JOIN \`tarifs\` AS t ON t.\`id\` = d.\`tarif_id\`
-       SET d.\`uang_jalan_supir\` = t.\`total_setelah_pph\`
-       WHERE d.\`uang_jalan_supir\` IS NULL`
-    );
-    await conn.query(
-      `UPDATE \`delivery_orders\` AS d
-       INNER JOIN \`tarifs\` AS t
-         ON UPPER(TRIM(t.\`area_distribusi\`)) = UPPER(TRIM(d.\`area_distribusi\`))
-        AND UPPER(TRIM(t.\`tujuan_kirim\`)) = UPPER(TRIM(d.\`tujuan_kirim\`))
-       SET d.\`uang_jalan_supir\` = t.\`total_setelah_pph\`
-       WHERE d.\`uang_jalan_supir\` IS NULL`
-    );
-    console.log("✅ Uang jalan DO lama disinkronkan dari master tarif.");
   } catch (err) {
     console.error("❌ Sinkronisasi uang jalan sopir gagal:", err.message);
+    await conn.end();
+    throw err;
+  }
+
+  try {
+    const [tarifDriverExpenseColumn] = await conn.query(
+      "SHOW COLUMNS FROM `tarifs` LIKE 'total_setelah_pph'"
+    );
+    if (tarifDriverExpenseColumn.length > 0) {
+      await conn.query(
+        `UPDATE \`delivery_orders\` AS d
+         INNER JOIN \`tarifs\` AS t ON t.\`id\` = d.\`tarif_id\`
+         SET d.\`uang_jalan_supir\` = t.\`total_setelah_pph\`
+         WHERE d.\`uang_jalan_supir\` IS NULL`
+      );
+      await conn.query(
+        `UPDATE \`delivery_orders\` AS d
+         INNER JOIN \`tarifs\` AS t
+           ON UPPER(TRIM(t.\`area_distribusi\`)) = UPPER(TRIM(d.\`area_distribusi\`))
+          AND UPPER(TRIM(t.\`tujuan_kirim\`)) = UPPER(TRIM(d.\`tujuan_kirim\`))
+         SET d.\`uang_jalan_supir\` = t.\`total_setelah_pph\`
+         WHERE d.\`uang_jalan_supir\` IS NULL`
+      );
+      console.log("✅ Uang jalan DO lama disalin dari master tarif.");
+      await conn.query("ALTER TABLE `tarifs` DROP COLUMN `total_setelah_pph`");
+      console.log("✅ Kolom uang jalan lama di master tarif berhasil dihapus.");
+    }
+  } catch (err) {
+    console.error("❌ Penghapusan kolom uang jalan master tarif gagal:", err.message);
     await conn.end();
     throw err;
   }
@@ -116,6 +129,24 @@ async function migrate() {
     }
   } catch (err) {
     console.error("❌ Sinkronisasi kolom lembar gagal:", err.message);
+    await conn.end();
+    throw err;
+  }
+
+  try {
+    const [mdoColumn] = await conn.query(
+      "SHOW COLUMNS FROM `delivery_order_documents` LIKE 'mdo'"
+    );
+    if (mdoColumn.length === 0) {
+      await conn.query(
+        "ALTER TABLE `delivery_order_documents` ADD COLUMN `mdo` VARCHAR(100) NULL AFTER `keterangan_doc`"
+      );
+      console.log("✅ Kolom 'mdo' berhasil ditambahkan ke tabel delivery_order_documents.");
+    } else {
+      console.log("✅ Kolom 'mdo' sudah tersedia di tabel delivery_order_documents.");
+    }
+  } catch (err) {
+    console.error("❌ Sinkronisasi kolom MDO gagal:", err.message);
     await conn.end();
     throw err;
   }

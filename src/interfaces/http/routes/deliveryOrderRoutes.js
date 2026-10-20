@@ -20,6 +20,7 @@ export function createDeliveryOrderRoutes(deliveryOrderController, authMiddlewar
   // Edit / revise a submitted order
   router.patch("/:id", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.update);
   router.patch("/:id/lembar", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.updateLembar);
+  router.patch("/:id/mdo", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.updateMdo);
   router.patch("/:id/revise", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.revise);
   router.delete("/:id", roleMiddleware([UserRole.ADMIN]), deliveryOrderController.remove);
 

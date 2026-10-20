@@ -60,26 +60,6 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
           return dateB - dateA;
         })[0] || {}
       : {};
-    let uangJalanSupir = row.uangJalanSupir;
-    if (uangJalanSupir == null) {
-      const tarif = row.tarifId
-        ? await this.prisma.tarif.findUnique({
-            where: { id: row.tarifId },
-            select: { totalSetelahPPh: true },
-          })
-        : null;
-      const matchingTarif = tarif || (row.areaDistribusi && row.tujuanKirim
-        ? await this.prisma.tarif.findFirst({
-            where: {
-              areaDistribusi: row.areaDistribusi,
-              tujuanKirim: row.tujuanKirim,
-            },
-            select: { totalSetelahPPh: true },
-          })
-        : null);
-      uangJalanSupir = matchingTarif?.totalSetelahPPh;
-    }
-
     return new DeliveryOrder({
       id: row.id,
       noDO: row.noDo,
@@ -104,6 +84,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       alamatLengkapTujuan: this._firstDefined(row.alamatLengkapTujuan, document.alamatLengkapTujuan),
       noHpPenerima: this._firstDefined(row.noHpPenerima, document.noHpPenerima),
       keteranganDoc: this._firstDefined(row.keteranganDoc, document.keteranganDoc),
+      mdo: document.mdo,
       lembar: document.lembar,
 
       tarifId: row.tarifId,
@@ -112,7 +93,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       biayaEkspedisi: Number(row.biayaEkspedisi || 0),
       pph2Persen: Number(this._firstDefined(row.pph2Persen, row.pph2, Math.round(Number(row.biayaEkspedisi || 0) * 0.02)) || 0),
       totalSetelahPPh: Number(this._firstDefined(row.totalSetelahPPh, row.totalSetelahPph, row.totalSetAfterPPh, Number(row.biayaEkspedisi || 0) - Math.round(Number(row.biayaEkspedisi || 0) * 0.02)) || 0),
-      uangJalanSupir: uangJalanSupir == null ? null : Number(uangJalanSupir),
+      uangJalanSupir: row.uangJalanSupir == null ? null : Number(row.uangJalanSupir),
 
 
       status: row.status,

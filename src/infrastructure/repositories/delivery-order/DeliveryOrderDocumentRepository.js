@@ -35,6 +35,7 @@ export class DeliveryOrderDocumentRepository {
       alamatLengkapTujuan: order.alamatLengkapTujuan || null,
       noHpPenerima: order.noHpPenerima || null,
       keteranganDoc: order.keteranganDoc || null,
+      mdo: order.mdo || null,
       lembar: order.lembar || null,
     };
 
@@ -55,6 +56,7 @@ export class DeliveryOrderDocumentRepository {
       alamatLengkapTujuan: this._firstDefined(row.alamatLengkapTujuan),
       noHpPenerima: this._firstDefined(row.noHpPenerima),
       keteranganDoc: this._firstDefined(row.keteranganDoc),
+      mdo: this._firstDefined(row.mdo),
       lembar: this._firstDefined(row.lembar),
     };
   }
