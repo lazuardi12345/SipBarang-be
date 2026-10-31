@@ -5,6 +5,19 @@ import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository
 import { Invoice } from "../../domain/entities/Invoice.js";
 import { InvoiceItemRepository } from "./invoice/InvoiceItemRepository.js";
 
+function getScheduleMatchKey(item) {
+  const area = String(item.areaDistribusi || "").trim().toLocaleLowerCase("id-ID");
+  const destination = String(item.tujuanKirim || "").trim().toLocaleLowerCase("id-ID");
+  const price = Number(item.biayaEkspedisi);
+  if (!area || !destination || !Number.isFinite(price)) return null;
+  return JSON.stringify([area, destination, price]);
+}
+
+function isUnlinkedImportedRecapItem(item) {
+  return !item.deliveryOrderId &&
+    String(item.id || "").startsWith("imp-pdf-inv-ayt-pl-003-item-");
+}
+
 export class MysqlInvoiceRepository extends IInvoiceRepository {
   constructor(prismaClient) {
     super();
@@ -29,15 +42,74 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
           include: { schedule: true, document: true },
         })
       : [];
+    const importedRecapItems = row.noInvoice === "INV-AYT-PL-003"
+      ? storedItems.filter(isUnlinkedImportedRecapItem)
+      : [];
+    const matchPairs = new Map();
+    for (const item of importedRecapItems) {
+      const key = getScheduleMatchKey(item);
+      if (key) {
+        matchPairs.set(key, {
+          areaDistribusi: item.areaDistribusi,
+          tujuanKirim: item.tujuanKirim,
+          biayaEkspedisi: Number(item.biayaEkspedisi),
+        });
+      }
+    }
+    const matchingDeliveryOrders = matchPairs.size > 0
+      ? await this.prisma.deliveryOrder.findMany({
+          where: {
+            id: { startsWith: "imp-pdf-rekap" },
+            OR: [...matchPairs.values()],
+          },
+          include: { schedule: true, document: true },
+        })
+      : [];
     const orderById = new Map(
-      deliveryOrders.map((order) => [order.id, order])
+      [...deliveryOrders, ...matchingDeliveryOrders].map((order) => [order.id, order])
     );
+    const ordersByMatchKey = new Map();
+    for (const order of matchingDeliveryOrders) {
+      const key = getScheduleMatchKey(order);
+      if (!key) continue;
+      const matches = ordersByMatchKey.get(key) || [];
+      matches.push(order);
+      ordersByMatchKey.set(key, matches);
+    }
+    for (const matches of ordersByMatchKey.values()) {
+      matches.sort((a, b) => {
+        const dateA = new Date(a.schedule?.tglSchedule || a.tanggalKirim || 0).getTime();
+        const dateB = new Date(b.schedule?.tglSchedule || b.tanggalKirim || 0).getTime();
+        return dateA - dateB ||
+          String(a.schedule?.noSchedule || "").localeCompare(
+            String(b.schedule?.noSchedule || ""),
+            "id",
+            { numeric: true }
+          ) ||
+          String(a.id).localeCompare(String(b.id));
+      });
+    }
+    const usedFallbackOrderIds = new Set(deliveryOrderIds);
     const items = storedItems.map((item) => {
-      const order = orderById.get(item.deliveryOrderId) || {};
+      let order = orderById.get(item.deliveryOrderId) || {};
+      if (!item.deliveryOrderId && isUnlinkedImportedRecapItem(item)) {
+        const key = getScheduleMatchKey(item);
+        const match = ordersByMatchKey.get(key)?.find(
+          (candidate) => !usedFallbackOrderIds.has(candidate.id)
+        );
+        if (match) {
+          order = match;
+          usedFallbackOrderIds.add(match.id);
+        }
+      }
       const schedule = order.schedule || {};
       const document = order.document || {};
       return {
         ...item,
+        deliveryOrderId: item.deliveryOrderId || order.id || null,
+        noDO: item.noDO || order.noDo || null,
+        noDocPerusahaan: item.noDocPerusahaan || document.noDocPerusahaan || null,
+        tanggalKirim: item.tanggalKirim || order.tanggalKirim || null,
         namaBarang:
           (item.namaBarang && item.namaBarang !== "-" ? item.namaBarang : "") ||
           document.keteranganDoc ||
@@ -155,7 +227,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
 
   async list() {
     const rows = await this.prisma.invoice.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { tanggalInvoice: "desc" },
       include: {
         items: true,
       },

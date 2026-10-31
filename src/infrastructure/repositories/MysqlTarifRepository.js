@@ -17,11 +17,13 @@ export class MysqlTarifRepository extends ITarifRepository {
       areaDistribusi: row.areaDistribusi,
       tujuanKirim: row.tujuanKirim,
       total: Number(row.total || 0),
+      active: row.active,
     });
   }
 
   async list() {
     const rows = await this.prisma.tarif.findMany({
+      where: { active: true },
       orderBy: [{ areaDistribusi: "asc" }, { tujuanKirim: "asc" }],
     });
     return rows.map((r) => this._toEntity(r));
@@ -41,6 +43,7 @@ export class MysqlTarifRepository extends ITarifRepository {
         areaDistribusi: tarif.areaDistribusi,
         tujuanKirim: tarif.tujuanKirim,
         total: Number(tarif.total),
+        active: true,
       },
     });
     return this._toEntity(row);
@@ -59,8 +62,9 @@ export class MysqlTarifRepository extends ITarifRepository {
   }
 
   async delete(id) {
-    const row = await this.prisma.tarif.delete({
+    const row = await this.prisma.tarif.update({
       where: { id },
+      data: { active: false },
     });
     return this._toEntity(row);
   }

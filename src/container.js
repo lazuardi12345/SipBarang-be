@@ -43,11 +43,13 @@ import { AuthController } from "./interfaces/http/controllers/AuthController.js"
 import { DeliveryOrderController } from "./interfaces/http/controllers/DeliveryOrderController.js";
 import { InvoiceController } from "./interfaces/http/controllers/InvoiceController.js";
 import { TarifController } from "./interfaces/http/controllers/TarifController.js";
+import { SuperadminController } from "./interfaces/http/controllers/SuperadminController.js";
 
 import { createAuthRoutes } from "./interfaces/http/routes/authRoutes.js";
 import { createDeliveryOrderRoutes } from "./interfaces/http/routes/deliveryOrderRoutes.js";
 import { createInvoiceRoutes } from "./interfaces/http/routes/invoiceRoutes.js";
 import { createTarifRoutes } from "./interfaces/http/routes/tarifRoutes.js";
+import { createSuperadminRoutes } from "./interfaces/http/routes/superadminRoutes.js";
 import { createApiRouter } from "./interfaces/http/routes/apiRouter.js";
 
 export async function createContainer() {
@@ -124,17 +126,20 @@ export async function createContainer() {
     updateTarifUseCase,
     deleteTarifUseCase
   );
+  const superadminController = new SuperadminController(prisma);
 
   const authRoutes = createAuthRoutes(authController, authMiddleware);
   const deliveryOrderRoutes = createDeliveryOrderRoutes(deliveryOrderController, authMiddleware, roleMiddleware);
   const invoiceRoutes = createInvoiceRoutes(invoiceController, authMiddleware, roleMiddleware);
   const tarifRoutes = createTarifRoutes(tarifController, authMiddleware, roleMiddleware);
+  const adminRoutes = createSuperadminRoutes(superadminController, authMiddleware, roleMiddleware);
 
   const apiRouter = createApiRouter({
     authRoutes,
     deliveryOrderRoutes,
     invoiceRoutes,
     tarifRoutes,
+    adminRoutes,
     authMiddleware,
   });
 

@@ -29,6 +29,21 @@ export class UpdateTarifUseCase {
       throw error;
     }
 
+    const existingTarifs = await this.tarifRepository.list();
+    const duplicate = existingTarifs.some(
+      (tarif) =>
+        tarif.id !== id &&
+        tarif.areaDistribusi.trim().toLowerCase() === areaDistribusi.toLowerCase() &&
+        tarif.tujuanKirim.trim().toLowerCase() === tujuanKirim.toLowerCase() &&
+        Number(tarif.total) === total
+    );
+
+    if (duplicate) {
+      const error = new Error("Rute dengan tarif tersebut sudah terdaftar");
+      error.statusCode = 409;
+      throw error;
+    }
+
     return this.tarifRepository.update(
       new Tarif({
         id,

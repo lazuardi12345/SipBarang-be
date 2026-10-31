@@ -28,7 +28,7 @@ export class DeliveryOrder {
     this.namaSupir = data.namaSupir || "";
     this.noHpSupir = data.noHpSupir || "";
     this.noPolisiKendaraan = data.noPolisiKendaraan || "";
-    this.jenisKendaraan = data.jenisKendaraan || "Mobil CDD 8 Ton";
+    this.jenisKendaraan = data.jenisKendaraan || "";
 
     // Surat Jalan / Dokumen dari Perusahaan (Pabrik)
     this.noDocPerusahaan = data.noDocPerusahaan || "";

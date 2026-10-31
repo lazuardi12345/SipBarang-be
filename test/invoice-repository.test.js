@@ -39,3 +39,79 @@ test("Invoice responses include schedule details without changing invoice item s
   assert.equal(invoice.groupedItems[0].description, "Orderan merchant");
   assert.equal(invoice.groupedItems[0].area, "KARAWANG");
 });
+
+test("Unlinked INV-AYT-PL-003 items reuse matching bookkeeping schedules in schedule-date order", async () => {
+  const prisma = {
+    invoice: {
+      findMany: async () => [{
+        id: "invoice-003",
+        noInvoice: "INV-AYT-PL-003",
+        items: [
+          {
+            id: "imp-pdf-inv-ayt-pl-003-item-001",
+            areaDistribusi: "KARAWANG",
+            tujuanKirim: "Cirebon",
+            biayaEkspedisi: 2649000,
+          },
+          {
+            id: "imp-pdf-inv-ayt-pl-003-item-002",
+            areaDistribusi: "KARAWANG",
+            tujuanKirim: "Cirebon",
+            biayaEkspedisi: 2649000,
+          },
+          {
+            id: "imp-pdf-inv-ayt-pl-003-item-003",
+            areaDistribusi: "KARAWANG",
+            tujuanKirim: "Ciamis",
+            biayaEkspedisi: 3376000,
+          },
+        ],
+      }],
+    },
+    deliveryOrder: {
+      findMany: async ({ where }) => {
+        assert.equal(where.id.startsWith, "imp-pdf-rekap");
+        assert.equal(where.OR.length, 2);
+        return [
+          {
+            id: "do-later",
+            noDo: "DO-LATER",
+            tanggalKirim: new Date("2026-10-08T00:00:00.000Z"),
+            areaDistribusi: "KARAWANG",
+            tujuanKirim: "Cirebon",
+            biayaEkspedisi: 2649000,
+            schedule: {
+              noSchedule: "S-LATER",
+              tglSchedule: new Date("2026-10-08T00:00:00.000Z"),
+            },
+            document: { noDocPerusahaan: "DOC-LATER" },
+          },
+          {
+            id: "do-earlier",
+            noDo: "DO-EARLIER",
+            tanggalKirim: new Date("2026-10-07T00:00:00.000Z"),
+            areaDistribusi: "KARAWANG",
+            tujuanKirim: "Cirebon",
+            biayaEkspedisi: 2649000,
+            schedule: {
+              noSchedule: "S-EARLIER",
+              tglSchedule: new Date("2026-10-07T00:00:00.000Z"),
+            },
+            document: { noDocPerusahaan: "DOC-EARLIER" },
+          },
+        ];
+      },
+    },
+  };
+
+  const [invoice] = await new MysqlInvoiceRepository(prisma).list();
+
+  assert.equal(invoice.items[0].deliveryOrderId, "do-earlier");
+  assert.equal(invoice.items[0].noSchedule, "S-EARLIER");
+  assert.equal(invoice.items[0].noDO, "DO-EARLIER");
+  assert.equal(invoice.items[0].noDocPerusahaan, "DOC-EARLIER");
+  assert.equal(invoice.items[1].deliveryOrderId, "do-later");
+  assert.equal(invoice.items[1].noSchedule, "S-LATER");
+  assert.equal(invoice.items[2].deliveryOrderId, null);
+  assert.equal(invoice.items[2].noSchedule, "-");
+});

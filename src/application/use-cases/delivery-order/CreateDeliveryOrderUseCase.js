@@ -8,19 +8,26 @@ export class CreateDeliveryOrderUseCase {
   }
 
   async execute(input, user) {
-    const namaToko = input.namaToko?.trim() || input.namaPenerima?.trim() || "";
-    if (!input.tarifId || !namaToko) {
-      const err = new Error("Tujuan kirim dan nama toko/depo wajib diisi");
+    if (!input.tarifId) {
+      const err = new Error("Tujuan kirim wajib dipilih");
       err.statusCode = 400;
       throw err;
     }
 
     const tarif = await this.tarifRepository.findById(input.tarifId);
-    if (!tarif) {
+    if (!tarif || tarif.active === false) {
       const err = new Error("Data tarif tujuan tidak ditemukan");
       err.statusCode = 404;
       throw err;
     }
+
+    const tujuanKirim = tarif.tujuanKirim.trim();
+    const namaToko =
+      input.namaToko?.trim() ||
+      input.namaPenerima?.trim() ||
+      `Toko ${tujuanKirim}`;
+    const alamatLengkapTujuan =
+      input.alamatLengkapTujuan?.trim() || tujuanKirim;
 
     const totalOrders = await this.deliveryOrderRepository.count();
     const noDO = this.generateNoDO(totalOrders + 1);
@@ -40,7 +47,7 @@ export class CreateDeliveryOrderUseCase {
       namaSupir: input.namaSupir || "",
       noHpSupir: input.noHpSupir || "",
       noPolisiKendaraan: input.noPolisiKendaraan || "",
-      jenisKendaraan: input.jenisKendaraan || "Mobil CDD 8 Ton",
+      jenisKendaraan: input.jenisKendaraan || "",
 
       // Dokumen Surat Jalan Perusahaan (Pabrik)
       noDocPerusahaan: "",
@@ -48,16 +55,16 @@ export class CreateDeliveryOrderUseCase {
       namaToko,
       salesman: input.salesman || "",
       agen: input.agen || "TBN",
-      kota: input.kota || "",
+      kota: input.kota?.trim() || tujuanKirim,
       kecamatan: input.kecamatan || "",
-      alamatLengkapTujuan: input.alamatLengkapTujuan || "",
+      alamatLengkapTujuan,
       noHpPenerima: input.noHpPenerima || "",
       keteranganDoc: input.keteranganDoc || "",
 
       // Tarif & Lokasi
       tarifId: tarif.id,
       areaDistribusi: tarif.areaDistribusi,
-      tujuanKirim: tarif.tujuanKirim,
+      tujuanKirim,
       biayaEkspedisi: Number(tarif.total || 0),
       pph2Persen: Math.round(Number(tarif.total || 0) * 0.02),
       totalSetelahPPh: Number(tarif.total || 0) - Math.round(Number(tarif.total || 0) * 0.02),

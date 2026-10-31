@@ -22,6 +22,7 @@ export const CREATE_USERS_TABLE = `
     \`email\`         VARCHAR(150) NOT NULL UNIQUE,
     \`password_hash\` VARCHAR(255) NOT NULL,
     \`role\`          ENUM('ADMIN','DIREKTUR','SUPERADMIN') NOT NULL DEFAULT 'ADMIN',
+    \`active\`        BOOLEAN      NOT NULL DEFAULT TRUE,
     \`created_at\`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     \`updated_at\`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -33,6 +34,7 @@ export const CREATE_TARIFS_TABLE = `
     \`area_distribusi\`   VARCHAR(200)  NOT NULL,
     \`tujuan_kirim\`      VARCHAR(200)  NOT NULL,
     \`total\`             DECIMAL(15,2) NOT NULL DEFAULT 0,
+    \`active\`            BOOLEAN       NOT NULL DEFAULT TRUE,
     \`created_at\`        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     INDEX idx_area (\`area_distribusi\`),
@@ -133,6 +135,7 @@ export const CREATE_DELIVERY_ORDER_REPORTS_TABLE = `
     \`catatan_pelaporan\`   TEXT          NULL,
     \`bukti_pengiriman_url\` LONGTEXT     NULL,
     \`tanggal_diterima\`    DATETIME      NULL,
+    \`active\`              BOOLEAN       NOT NULL DEFAULT TRUE,
     \`created_at\`         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_dor_order FOREIGN KEY (\`order_id\`) REFERENCES \`delivery_orders\`(\`id\`) ON DELETE CASCADE,

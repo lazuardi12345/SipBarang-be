@@ -19,7 +19,7 @@ export function createAuthMiddleware(jwtService, userRepository) {
       }
 
       const user = await userRepository.findById(decoded.id);
-      if (!user) {
+      if (!user || !user.active) {
         return res.status(401).json({
           success: false,
           message: "Pengguna tidak ditemukan",

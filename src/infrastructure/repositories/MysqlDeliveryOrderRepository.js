@@ -20,7 +20,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
     this.include = {
       schedule: true,
       document: true,
-      reports: { orderBy: { createdAt: "desc" } },
+      reports: { where: { active: true }, orderBy: { createdAt: "desc" } },
       approvals: true,
       confirmations: { orderBy: { createdAt: "desc" } },
     };
@@ -212,7 +212,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
 
   async list() {
     const rows = await this.prisma.deliveryOrder.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { tanggalKirim: "desc" },
       include: this.include,
     });
     return Promise.all(rows.map((row) => this._toEntity(row)));
@@ -229,7 +229,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
   async listByStatus(status) {
     const rows = await this.prisma.deliveryOrder.findMany({
       where: { status },
-      orderBy: { createdAt: "desc" },
+      orderBy: { tanggalKirim: "desc" },
       include: this.include,
     });
     return Promise.all(rows.map((row) => this._toEntity(row)));

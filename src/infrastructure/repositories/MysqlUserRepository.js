@@ -18,6 +18,7 @@ export class MysqlUserRepository extends IUserRepository {
       email: row.email,
       passwordHash: row.passwordHash,
       role: row.role,
+      active: row.active,
       createdAt: row.createdAt?.toISOString?.() || row.createdAt,
     });
   }

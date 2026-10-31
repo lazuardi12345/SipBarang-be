@@ -26,12 +26,13 @@ export class CreateTarifUseCase {
     const existing = await this.tarifRepository.list();
     const duplicate = existing.some(
       (tarif) =>
-        tarif.areaDistribusi.toLowerCase() === areaDistribusi.toLowerCase() &&
-        tarif.tujuanKirim.toLowerCase() === tujuanKirim.toLowerCase()
+        tarif.areaDistribusi.trim().toLowerCase() === areaDistribusi.toLowerCase() &&
+        tarif.tujuanKirim.trim().toLowerCase() === tujuanKirim.toLowerCase() &&
+        Number(tarif.total) === total
     );
 
     if (duplicate) {
-      const error = new Error("Tujuan dengan area tersebut sudah terdaftar");
+      const error = new Error("Rute dengan tarif tersebut sudah terdaftar");
       error.statusCode = 409;
       throw error;
     }

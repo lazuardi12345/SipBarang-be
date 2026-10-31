@@ -20,6 +20,12 @@ export class LoginUseCase {
       throw err;
     }
 
+    if (!user.active) {
+      const err = new Error("Akun ini sudah dinonaktifkan. Hubungi Superadmin.");
+      err.statusCode = 403;
+      throw err;
+    }
+
     const isMatch = await PasswordHasher.compare(password, user.passwordHash);
     if (!isMatch) {
       const err = new Error("Email atau password tidak sesuai");

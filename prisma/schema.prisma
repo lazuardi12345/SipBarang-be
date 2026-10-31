@@ -42,6 +42,7 @@ model User {
   email        String   @unique @db.VarChar(150)
   passwordHash String   @map("password_hash") @db.VarChar(255)
   role         UserRole @default(ADMIN)
+  active       Boolean  @default(true) @map("active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -53,6 +54,7 @@ model Tarif {
   areaDistribusi  String   @map("area_distribusi") @db.VarChar(200)
   tujuanKirim     String   @map("tujuan_kirim") @db.VarChar(200)
   total           Decimal  @db.Decimal(15, 2)
+  active          Boolean  @default(true) @map("active")
   createdAt       DateTime @default(now()) @map("created_at")
 
   @@map("tarifs")
@@ -155,6 +157,7 @@ model DeliveryOrderReport {
   catatanPelaporan     String?       @map("catatan_pelaporan") @db.Text
   buktiPengirimanUrl   String?       @map("bukti_pengiriman_url") @db.LongText
   tanggalDiterima      DateTime?     @map("tanggal_diterima")
+  active               Boolean       @default(true) @map("active")
   createdAt            DateTime      @default(now()) @map("created_at")
 
   @@map("delivery_order_reports")

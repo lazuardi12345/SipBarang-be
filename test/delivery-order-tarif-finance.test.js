@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CreateDeliveryOrderUseCase } from "../src/application/use-cases/delivery-order/CreateDeliveryOrderUseCase.js";
+import { CreateTarifUseCase } from "../src/application/use-cases/tarif/CreateTarifUseCase.js";
 import { SubmitToDirectorUseCase } from "../src/application/use-cases/delivery-order/SubmitToDirectorUseCase.js";
+import { UpdateTarifUseCase } from "../src/application/use-cases/tarif/UpdateTarifUseCase.js";
 import { MysqlDeliveryOrderRepository } from "../src/infrastructure/repositories/MysqlDeliveryOrderRepository.js";
 
 test("new delivery order leaves driver expense unset until admin submits it", async () => {
@@ -33,6 +35,112 @@ test("new delivery order leaves driver expense unset until admin submits it", as
   assert.equal(createdOrder.biayaEkspedisi, 15_000_000);
   assert.equal(createdOrder.uangJalanSupir, null);
   assert.equal(createdOrder.pph2Persen, 300_000);
+});
+
+test("delivery order defaults missing destination details from the selected route without inventing driver data", async () => {
+  let createdOrder;
+  const useCase = new CreateDeliveryOrderUseCase(
+    {
+      count: async () => 0,
+      create: async (order) => {
+        createdOrder = order;
+        return order;
+      },
+    },
+    {
+      findById: async () => ({
+        id: "tarif-bandung",
+        areaDistribusi: "Karawang",
+        tujuanKirim: "Bandung",
+        total: 1_601_000,
+      }),
+    }
+  );
+
+  await useCase.execute(
+    { tarifId: "tarif-bandung" },
+    { id: "admin-1", nama: "Admin", role: "ADMIN" }
+  );
+
+  assert.equal(createdOrder.namaToko, "Toko Bandung");
+  assert.equal(createdOrder.kota, "Bandung");
+  assert.equal(createdOrder.alamatLengkapTujuan, "Bandung");
+  assert.equal(createdOrder.namaSupir, "");
+  assert.equal(createdOrder.noHpSupir, "");
+  assert.equal(createdOrder.noPolisiKendaraan, "");
+  assert.equal(createdOrder.jenisKendaraan, "");
+  assert.equal(createdOrder.biayaEkspedisi, 1_601_000);
+});
+
+test("delivery order rejects an explicitly deactivated tariff", async () => {
+  const useCase = new CreateDeliveryOrderUseCase(
+    { count: async () => 0, create: async () => assert.fail("inactive tariff must not be used") },
+    {
+      findById: async () => ({
+        id: "tarif-bandung",
+        areaDistribusi: "Karawang",
+        tujuanKirim: "Bandung",
+        total: 1_601_000,
+        active: false,
+      }),
+    }
+  );
+
+  await assert.rejects(
+    useCase.execute(
+      { tarifId: "tarif-bandung" },
+      { id: "admin-1", nama: "Admin", role: "ADMIN" }
+    ),
+    { statusCode: 404 }
+  );
+});
+
+test("creating a tariff allows a different price for the same route but rejects an exact duplicate", async () => {
+  const tarifas = [
+    { id: "tarif-bandung-1", areaDistribusi: "Karawang", tujuanKirim: "Bandung", total: 1_500_000 },
+  ];
+  const useCase = new CreateTarifUseCase({
+    list: async () => tarifas,
+    create: async (tarif) => {
+      tarifas.push(tarif);
+      return tarif;
+    },
+  });
+
+  await useCase.execute({
+    areaDistribusi: "karawang",
+    tujuanKirim: "bandung",
+    total: 1_601_000,
+  });
+  assert.equal(tarifas.length, 2);
+
+  await assert.rejects(
+    useCase.execute({
+      areaDistribusi: "Karawang",
+      tujuanKirim: "Bandung",
+      total: 1_601_000,
+    }),
+    { statusCode: 409 }
+  );
+});
+
+test("updating a tariff rejects an exact duplicate but permits another price for the same route", async () => {
+  const tarifas = [
+    { id: "tarif-bandung-1", areaDistribusi: "Karawang", tujuanKirim: "Bandung", total: 1_500_000 },
+    { id: "tarif-bandung-2", areaDistribusi: "Karawang", tujuanKirim: "Bandung", total: 1_601_000 },
+  ];
+  const useCase = new UpdateTarifUseCase({
+    findById: async (id) => tarifas.find((tarif) => tarif.id === id),
+    list: async () => tarifas,
+    update: async (updated) => updated,
+  });
+
+  await assert.rejects(
+    useCase.execute("tarif-bandung-2", { total: 1_500_000 }),
+    { statusCode: 409 }
+  );
+  const updated = await useCase.execute("tarif-bandung-2", { total: 1_700_000 });
+  assert.equal(updated.total, 1_700_000);
 });
 
 test("delivery order does not infer missing driver expense from tariff", async () => {

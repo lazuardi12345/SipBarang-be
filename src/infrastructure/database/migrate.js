@@ -49,6 +49,22 @@ async function migrate() {
     }
   }
 
+  for (const [table, column] of [
+    ["users", "active"],
+    ["tarifs", "active"],
+    ["delivery_order_reports", "active"],
+  ]) {
+    const [columns] = await conn.query(
+      `SHOW COLUMNS FROM \`${table}\` LIKE '${column}'`
+    );
+    if (columns.length === 0) {
+      await conn.query(
+        `ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` BOOLEAN NOT NULL DEFAULT TRUE`
+      );
+      console.log(`✅ Kolom '${column}' berhasil ditambahkan ke tabel ${table}.`);
+    }
+  }
+
   // 4. Pastikan kolom pph_2 dan total_setelah_pph tersinkronisasi di tabel delivery_orders
   try {
     const [colsPph] = await conn.query("SHOW COLUMNS FROM `delivery_orders` LIKE 'pph_2'");
