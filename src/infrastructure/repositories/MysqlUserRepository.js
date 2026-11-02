@@ -3,6 +3,7 @@
  */
 import { IUserRepository } from "../../domain/repositories/IUserRepository.js";
 import { User } from "../../domain/entities/User.js";
+import { nextSequentialId } from "../database/sequentialId.js";
 
 export class MysqlUserRepository extends IUserRepository {
   constructor(prismaClient) {
@@ -40,7 +41,7 @@ export class MysqlUserRepository extends IUserRepository {
   async create(user) {
     const row = await this.prisma.user.create({
       data: {
-        id: user.id,
+        id: await nextSequentialId(this.prisma, "users"),
         nama: user.nama,
         email: user.email,
         passwordHash: user.passwordHash,

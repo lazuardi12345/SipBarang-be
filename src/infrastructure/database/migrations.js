@@ -225,6 +225,13 @@ export const CREATE_INVOICE_ITEMS_TABLE = `
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `;
 
+export const CREATE_ID_COUNTERS_TABLE = `
+  CREATE TABLE IF NOT EXISTS \`id_counters\` (
+    \`scope\`       VARCHAR(64) NOT NULL PRIMARY KEY,
+    \`last_value\`  INT         NOT NULL DEFAULT 0
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+`;
+
 export const ALL_MIGRATIONS = [
   { name: "users", sql: CREATE_USERS_TABLE },
   { name: "tarifs", sql: CREATE_TARIFS_TABLE },
@@ -237,4 +244,5 @@ export const ALL_MIGRATIONS = [
   { name: "delivery_order_histories", sql: CREATE_DELIVERY_ORDER_HISTORIES_TABLE },
   { name: "invoices", sql: CREATE_INVOICES_TABLE },
   { name: "invoice_items", sql: CREATE_INVOICE_ITEMS_TABLE },
+  { name: "id_counters", sql: CREATE_ID_COUNTERS_TABLE },
 ];

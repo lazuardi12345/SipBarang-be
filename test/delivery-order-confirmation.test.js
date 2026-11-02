@@ -7,13 +7,20 @@ import { MysqlDeliveryOrderRepository } from "../src/infrastructure/repositories
 
 test("director confirmation is persisted with the user and confirmation timestamp", async () => {
   let savedConfirmation;
-  const repository = new DeliveryOrderConfirmationRepository({
+  const prisma = {
+    $transaction: async (callback) => callback({
+      $executeRaw: async () => {},
+      $queryRaw: async () => [{ lastValue: 1 }],
+    }),
     deliveryOrderConfirmation: {
       create: async ({ data }) => {
         savedConfirmation = data;
         return data;
       },
     },
+  };
+  const repository = new DeliveryOrderConfirmationRepository({
+    ...prisma,
   });
   const confirmedAt = "2026-10-15T10:00:00.000Z";
 
@@ -24,6 +31,7 @@ test("director confirmation is persisted with the user and confirmation timestam
   });
 
   assert.deepEqual(savedConfirmation, {
+    id: "1",
     orderId: "do-1",
     userId: "director-1",
     catatanKonfirmasiDirektur: "Sesuai",

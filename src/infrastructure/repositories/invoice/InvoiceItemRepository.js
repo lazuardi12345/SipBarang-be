@@ -1,3 +1,5 @@
+import { nextSequentialIds } from "../../database/sequentialId.js";
+
 /**
  * InvoiceItemRepository
  * Mapping khusus untuk table invoice_items.
@@ -7,10 +9,12 @@ export class InvoiceItemRepository {
     this.prisma = prismaClient;
   }
 
-  toPrismaData(invoiceItem = []) {
+  async toPrismaData(invoiceItem = []) {
     if (!Array.isArray(invoiceItem) || invoiceItem.length === 0) return [];
 
-    return invoiceItem.map((item) => ({
+    const ids = await nextSequentialIds(this.prisma, "invoice_items", invoiceItem.length);
+    return invoiceItem.map((item, index) => ({
+      id: ids[index],
       deliveryOrderId: item.deliveryOrderId || null,
       noDO: item.noDO || null,
       noDocPerusahaan: item.noDocPerusahaan || null,
@@ -51,7 +55,7 @@ export class InvoiceItemRepository {
   }
 
   async replace(invoiceId, items) {
-    const data = this.toPrismaData(items);
+    const data = await this.toPrismaData(items);
 
     await this.prisma.invoiceItem.deleteMany({
       where: { invoiceId },

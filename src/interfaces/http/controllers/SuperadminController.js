@@ -1,4 +1,7 @@
-import crypto from "crypto";
+import {
+  nextSequentialId,
+  nextSequentialIds,
+} from "../../../infrastructure/database/sequentialId.js";
 import { PasswordHasher } from "../../../infrastructure/security/PasswordHasher.js";
 
 const USER_ROLES = new Set(["ADMIN", "DIREKTUR", "SUPERADMIN"]);
@@ -236,7 +239,7 @@ export class SuperadminController {
       if (password.length < 8) throw badRequest("Password minimal 8 karakter.");
       const user = await this.prisma.user.create({
         data: {
-          id: `usr-${crypto.randomUUID()}`,
+          id: await nextSequentialId(this.prisma, "users"),
           nama,
           email,
           passwordHash: await PasswordHasher.hash(password),
@@ -295,7 +298,7 @@ export class SuperadminController {
     try {
       const tarif = await this.prisma.tarif.create({
         data: {
-          id: `tarif-${crypto.randomUUID()}`,
+          id: await nextSequentialId(this.prisma, "tarifs"),
           areaDistribusi: requiredText(req.body.areaDistribusi, "Area distribusi"),
           tujuanKirim: requiredText(req.body.tujuanKirim, "Tujuan kirim"),
           total: requiredNumber(req.body.total, "Tarif bruto"),
@@ -338,9 +341,20 @@ export class SuperadminController {
       const order = await this.prisma.deliveryOrder.create({
         data: {
           ...data,
+          id: await nextSequentialId(this.prisma, "delivery_orders"),
           dibuatOleh: { id: req.user.id, nama: req.user.nama, role: req.user.role },
-          schedule: { create: schedule },
-          document: { create: document },
+          schedule: {
+            create: {
+              ...schedule,
+              id: await nextSequentialId(this.prisma, "delivery_order_schedules"),
+            },
+          },
+          document: {
+            create: {
+              ...document,
+              id: await nextSequentialId(this.prisma, "delivery_order_documents"),
+            },
+          },
         },
         include: { schedule: true, document: true, reports: true, approvals: true, confirmations: true, histories: true },
       });
@@ -353,6 +367,8 @@ export class SuperadminController {
   updateDeliveryOrder = async (req, res, next) => {
     try {
       const data = parseOrderData(req.body);
+      let existingSchedule = null;
+      let existingDocument = null;
       if (data.tarifId) {
         const [current, tarif] = await Promise.all([
           this.prisma.deliveryOrder.findUnique({ where: { id: req.params.id }, select: { tarifId: true } }),
@@ -363,18 +379,34 @@ export class SuperadminController {
         }
       }
       if (req.body.schedule) {
+        existingSchedule = await this.prisma.deliveryOrderSchedule.findUnique({
+          where: { orderId: req.params.id },
+          select: { id: true },
+        });
+        const schedule = parseSchedule(req.body.schedule);
         data.schedule = {
           upsert: {
-            create: parseSchedule(req.body.schedule),
-            update: parseSchedule(req.body.schedule),
+            create: {
+              ...schedule,
+              id: existingSchedule?.id || await nextSequentialId(this.prisma, "delivery_order_schedules"),
+            },
+            update: schedule,
           },
         };
       }
       if (req.body.document) {
+        existingDocument = await this.prisma.deliveryOrderDocument.findUnique({
+          where: { orderId: req.params.id },
+          select: { id: true },
+        });
+        const document = parseDocument(req.body.document);
         data.document = {
           upsert: {
-            create: parseDocument(req.body.document),
-            update: parseDocument(req.body.document),
+            create: {
+              ...document,
+              id: existingDocument?.id || await nextSequentialId(this.prisma, "delivery_order_documents"),
+            },
+            update: document,
           },
         };
       }
@@ -393,6 +425,7 @@ export class SuperadminController {
     try {
       const report = await this.prisma.deliveryOrderReport.create({
         data: {
+          id: await nextSequentialId(this.prisma, "delivery_order_reports"),
           orderId: req.params.orderId,
           namaPenerimaBarang: optionalText(req.body.namaPenerimaBarang),
           catatanPelaporan: optionalText(req.body.catatanPelaporan),
@@ -429,11 +462,18 @@ export class SuperadminController {
   createInvoice = async (req, res, next) => {
     try {
       const items = parseInvoiceItems(req.body.items || []);
+      const itemIds = items.length
+        ? await nextSequentialIds(this.prisma, "invoice_items", items.length)
+        : [];
+      const invoiceItems = items.map((item, index) => ({
+        ...item,
+        id: itemIds[index],
+      }));
       const status = req.body.status || "BELUM_LUNAS";
       if (!INVOICE_STATUSES.has(status)) throw badRequest("Status invoice tidak dikenal.");
       const invoice = await this.prisma.invoice.create({
         data: {
-          id: `inv-${crypto.randomUUID()}`,
+          id: await nextSequentialId(this.prisma, "invoices"),
           noInvoice: requiredText(req.body.noInvoice, "Nomor invoice"),
           tanggalInvoice: optionalDate(req.body.tanggalInvoice, "Tanggal invoice") || new Date(),
           namaPelanggan: requiredText(req.body.namaPelanggan, "Nama pelanggan"),
@@ -443,7 +483,7 @@ export class SuperadminController {
           totalPph2: optionalNumber(req.body.totalPph2, "Total PPh 2%", 0),
           totalTagihan: optionalNumber(req.body.totalTagihan, "Total tagihan", 0),
           status,
-          items: { create: items },
+          items: { create: invoiceItems },
         },
         include: { items: true },
       });

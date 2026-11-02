@@ -234,3 +234,10 @@ model InvoiceItem {
 
   @@map("invoice_items")
 }
+
+model IdCounter {
+  scope     String @id @db.VarChar(64)
+  lastValue Int    @default(0) @map("last_value")
+
+  @@map("id_counters")
+}

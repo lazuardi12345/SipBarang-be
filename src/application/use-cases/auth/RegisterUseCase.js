@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { User, UserRole } from "../../../domain/entities/User.js";
 import { PasswordHasher } from "../../../infrastructure/security/PasswordHasher.js";
 
@@ -22,9 +21,7 @@ export class RegisterUseCase {
     }
 
     const passwordHash = await PasswordHasher.hash(password);
-    const id = `usr-${crypto.randomBytes(6).toString("hex")}`;
     const newUser = new User({
-      id,
       nama,
       email,
       passwordHash,

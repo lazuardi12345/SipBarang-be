@@ -1,3 +1,5 @@
+import { nextSequentialId } from "../../database/sequentialId.js";
+
 /**
  * DeliveryOrderDocumentRepository
  * Mapping khusus untuk table delivery_order_documents.
@@ -64,10 +66,18 @@ export class DeliveryOrderDocumentRepository {
   async upsert(orderId, order) {
     const data = this.toPrismaData(order);
     if (!data) return null;
+    const existing = await this.prisma.deliveryOrderDocument.findUnique({
+      where: { orderId },
+      select: { id: true },
+    });
 
     return this.prisma.deliveryOrderDocument.upsert({
       where: { orderId },
-      create: { orderId, ...data },
+      create: {
+        id: existing?.id || await nextSequentialId(this.prisma, "delivery_order_documents"),
+        orderId,
+        ...data,
+      },
       update: data,
     });
   }

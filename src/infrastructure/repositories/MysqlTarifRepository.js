@@ -3,6 +3,7 @@
  */
 import { ITarifRepository } from "../../domain/repositories/ITarifRepository.js";
 import { Tarif } from "../../domain/entities/Tarif.js";
+import { nextSequentialId } from "../database/sequentialId.js";
 
 export class MysqlTarifRepository extends ITarifRepository {
   constructor(prismaClient) {
@@ -39,7 +40,7 @@ export class MysqlTarifRepository extends ITarifRepository {
   async create(tarif) {
     const row = await this.prisma.tarif.create({
       data: {
-        id: tarif.id,
+        id: await nextSequentialId(this.prisma, "tarifs"),
         areaDistribusi: tarif.areaDistribusi,
         tujuanKirim: tarif.tujuanKirim,
         total: Number(tarif.total),
