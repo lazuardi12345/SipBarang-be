@@ -115,6 +115,18 @@ model DeliveryOrderSchedule {
   @@map("delivery_order_schedules")
 }
 
+model DeliveryOrderDocumentRit {
+  noSchedule       String   @default("") @map("no_schedule") @db.VarChar(100)
+  noDocPerusahaan  String   @map("no_doc_perusahaan") @db.VarChar(100)
+  rit              String   @db.VarChar(20)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@id([noSchedule, noDocPerusahaan])
+  @@index([noDocPerusahaan])
+  @@map("delivery_order_document_rits")
+}
+
 model DeliveryOrderDocument {
   id                    String        @id @default(uuid()) @db.VarChar(64)
   orderId               String        @unique @map("order_id") @db.VarChar(64)

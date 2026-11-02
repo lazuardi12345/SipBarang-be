@@ -18,6 +18,13 @@ function isUnlinkedImportedRecapItem(item) {
   return !item.deliveryOrderId;
 }
 
+function getDocumentNumbers(value) {
+  return String(value || "")
+    .split(/[,;\n]+/)
+    .map((number) => number.trim())
+    .filter(Boolean);
+}
+
 export class MysqlInvoiceRepository extends IInvoiceRepository {
   constructor(prismaClient) {
     super();
@@ -68,6 +75,23 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
     const orderById = new Map(
       [...deliveryOrders, ...matchingDeliveryOrders].map((order) => [order.id, order])
     );
+    const documentNumbers = [...new Set([
+      ...storedItems.flatMap((item) => getDocumentNumbers(item.noDocPerusahaan)),
+      ...[...deliveryOrders, ...matchingDeliveryOrders].flatMap((order) =>
+        getDocumentNumbers(order.document?.noDocPerusahaan)
+      ),
+    ])];
+    const documentRitRows = documentNumbers.length > 0
+      ? await this.prisma.deliveryOrderDocumentRit.findMany({
+          where: { noDocPerusahaan: { in: documentNumbers } },
+        })
+      : [];
+    const documentRitsByNumber = new Map();
+    for (const documentRit of documentRitRows) {
+      const rows = documentRitsByNumber.get(documentRit.noDocPerusahaan) || [];
+      rows.push(documentRit);
+      documentRitsByNumber.set(documentRit.noDocPerusahaan, rows);
+    }
     const ordersByMatchKey = new Map();
     for (const order of matchingDeliveryOrders) {
       const key = getScheduleMatchKey(order);
@@ -104,11 +128,26 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
       }
       const schedule = order.schedule || {};
       const document = order.document || {};
+      const noDocPerusahaan = item.noDocPerusahaan || document.noDocPerusahaan || null;
+      const ritPerDocument = getDocumentNumbers(noDocPerusahaan).map((documentNumber) => {
+        const matches = documentRitsByNumber.get(documentNumber) || [];
+        const hasSchedule = Boolean(schedule.noSchedule);
+        const match = hasSchedule
+          ? matches.find((documentRit) => documentRit.noSchedule === schedule.noSchedule) ||
+            (matches.length === 1 ? matches[0] : null)
+          : matches.length === 1
+            ? matches[0]
+            : null;
+        return {
+          noDocPerusahaan: documentNumber,
+          rit: match?.rit || null,
+        };
+      });
       return {
         ...item,
         deliveryOrderId: item.deliveryOrderId || order.id || null,
         noDO: item.noDO || order.noDo || null,
-        noDocPerusahaan: item.noDocPerusahaan || document.noDocPerusahaan || null,
+        noDocPerusahaan,
         tanggalKirim: item.tanggalKirim || order.tanggalKirim || null,
         namaBarang:
           (item.namaBarang && item.namaBarang !== "-" ? item.namaBarang : "") ||
@@ -118,6 +157,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
         areaDistribusi: item.areaDistribusi || order.areaDistribusi,
         noSchedule: schedule.noSchedule || "-",
         tipeMobilRit: schedule.tipeMobilRit || "1",
+        ritPerDocument,
       };
     });
 

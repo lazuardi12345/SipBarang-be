@@ -89,6 +89,19 @@ export const CREATE_DELIVERY_ORDER_SCHEDULES_TABLE = `
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `;
 
+export const CREATE_DELIVERY_ORDER_DOCUMENT_RITS_TABLE = `
+  CREATE TABLE IF NOT EXISTS \`delivery_order_document_rits\` (
+    \`no_schedule\`       VARCHAR(100) NOT NULL DEFAULT '',
+    \`no_doc_perusahaan\` VARCHAR(100) NOT NULL,
+    \`rit\`               VARCHAR(20)  NOT NULL,
+    \`created_at\`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    \`updated_at\`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (\`no_schedule\`, \`no_doc_perusahaan\`),
+    INDEX idx_document_number (\`no_doc_perusahaan\`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+`;
+
 export const CREATE_DELIVERY_ORDER_DOCUMENTS_TABLE = `
   CREATE TABLE IF NOT EXISTS \`delivery_order_documents\` (
     \`id\`                   VARCHAR(64)   NOT NULL PRIMARY KEY,
@@ -237,6 +250,7 @@ export const ALL_MIGRATIONS = [
   { name: "tarifs", sql: CREATE_TARIFS_TABLE },
   { name: "delivery_orders", sql: CREATE_DELIVERY_ORDERS_TABLE },
   { name: "delivery_order_schedules", sql: CREATE_DELIVERY_ORDER_SCHEDULES_TABLE },
+  { name: "delivery_order_document_rits", sql: CREATE_DELIVERY_ORDER_DOCUMENT_RITS_TABLE },
   { name: "delivery_order_documents", sql: CREATE_DELIVERY_ORDER_DOCUMENTS_TABLE },
   { name: "delivery_order_approvals", sql: CREATE_DELIVERY_ORDER_APPROVALS_TABLE },
   { name: "delivery_order_reports", sql: CREATE_DELIVERY_ORDER_REPORTS_TABLE },
