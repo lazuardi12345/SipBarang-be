@@ -16,7 +16,7 @@ export async function getPool() {
     port: Number(process.env.DB_PORT || 3307),
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME || "delivery_order_db",
+    database: process.env.DB_NAME || "delivery_order_db_prisma",
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,

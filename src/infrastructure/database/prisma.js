@@ -19,7 +19,7 @@ if (!process.env.DATABASE_URL) {
   const port = process.env.DB_PORT || "3307";
   const user = process.env.DB_USER || "root";
   const pass = process.env.DB_PASSWORD || "";
-  const name = process.env.DB_NAME || "delivery_order_db";
+  const name = process.env.DB_NAME || "delivery_order_db_prisma";
   const auth = pass ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}` : encodeURIComponent(user);
   process.env.DATABASE_URL = `mysql://${auth}@${host}:${port}/${name}`;
 }

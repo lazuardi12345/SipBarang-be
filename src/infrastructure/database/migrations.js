@@ -9,11 +9,11 @@
  */
 
 export const CREATE_DATABASE_SQL = `
-  CREATE DATABASE IF NOT EXISTS \`delivery_order_db\`
+  CREATE DATABASE IF NOT EXISTS \`delivery_order_db_prisma\`
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 `;
 
-export const USE_DATABASE_SQL = `USE \`delivery_order_db\`;`;
+export const USE_DATABASE_SQL = `USE \`delivery_order_db_prisma\`;`;
 
 export const CREATE_USERS_TABLE = `
   CREATE TABLE IF NOT EXISTS \`users\` (

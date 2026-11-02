@@ -11,7 +11,7 @@ const DB_HOST = process.env.DB_HOST || "localhost";
 const DB_PORT = Number(process.env.DB_PORT || 3307);
 const DB_USER = process.env.DB_USER || "root";
 const DB_PASSWORD = process.env.DB_PASSWORD || "";
-const DB_NAME = process.env.DB_NAME || "delivery_order_db";
+const DB_NAME = process.env.DB_NAME || "delivery_order_db_prisma";
 
 async function migrate() {
   console.log("🚀 Memulai migrasi database MySQL...");
