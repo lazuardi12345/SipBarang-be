@@ -1,3 +1,5 @@
+import { nextSequentialId } from "../../database/sequentialId.js";
+
 /**
  * DeliveryOrderReportRepository
  * Mapping khusus untuk table delivery_order_reports.
@@ -49,7 +51,11 @@ export class DeliveryOrderReportRepository {
     }
 
     return this.prisma.deliveryOrderReport.create({
-      data: { orderId, ...data },
+      data: {
+        id: await nextSequentialId(this.prisma, "delivery_order_reports"),
+        orderId,
+        ...data,
+      },
     });
   }
 }

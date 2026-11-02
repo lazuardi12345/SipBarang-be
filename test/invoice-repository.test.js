@@ -48,19 +48,19 @@ test("Unlinked INV-AYT-PL-003 items reuse matching bookkeeping schedules in sche
         noInvoice: "INV-AYT-PL-003",
         items: [
           {
-            id: "imp-pdf-inv-ayt-pl-003-item-001",
+            id: "1",
             areaDistribusi: "KARAWANG",
             tujuanKirim: "Cirebon",
             biayaEkspedisi: 2649000,
           },
           {
-            id: "imp-pdf-inv-ayt-pl-003-item-002",
+            id: "2",
             areaDistribusi: "KARAWANG",
             tujuanKirim: "Cirebon",
             biayaEkspedisi: 2649000,
           },
           {
-            id: "imp-pdf-inv-ayt-pl-003-item-003",
+            id: "3",
             areaDistribusi: "KARAWANG",
             tujuanKirim: "Ciamis",
             biayaEkspedisi: 3376000,
@@ -70,12 +70,12 @@ test("Unlinked INV-AYT-PL-003 items reuse matching bookkeeping schedules in sche
     },
     deliveryOrder: {
       findMany: async ({ where }) => {
-        assert.equal(where.id.startsWith, "imp-pdf-rekap");
+        assert.equal(where.noDo.startsWith, "IMPORT-REKAP");
         assert.equal(where.OR.length, 2);
         return [
           {
-            id: "do-later",
-            noDo: "DO-LATER",
+            id: "46",
+            noDo: "IMPORT-REKAP01-LATER",
             tanggalKirim: new Date("2026-10-08T00:00:00.000Z"),
             areaDistribusi: "KARAWANG",
             tujuanKirim: "Cirebon",
@@ -87,8 +87,8 @@ test("Unlinked INV-AYT-PL-003 items reuse matching bookkeeping schedules in sche
             document: { noDocPerusahaan: "DOC-LATER" },
           },
           {
-            id: "do-earlier",
-            noDo: "DO-EARLIER",
+            id: "45",
+            noDo: "IMPORT-REKAP01-EARLIER",
             tanggalKirim: new Date("2026-10-07T00:00:00.000Z"),
             areaDistribusi: "KARAWANG",
             tujuanKirim: "Cirebon",
@@ -106,11 +106,11 @@ test("Unlinked INV-AYT-PL-003 items reuse matching bookkeeping schedules in sche
 
   const [invoice] = await new MysqlInvoiceRepository(prisma).list();
 
-  assert.equal(invoice.items[0].deliveryOrderId, "do-earlier");
+  assert.equal(invoice.items[0].deliveryOrderId, "45");
   assert.equal(invoice.items[0].noSchedule, "S-EARLIER");
-  assert.equal(invoice.items[0].noDO, "DO-EARLIER");
+  assert.equal(invoice.items[0].noDO, "IMPORT-REKAP01-EARLIER");
   assert.equal(invoice.items[0].noDocPerusahaan, "DOC-EARLIER");
-  assert.equal(invoice.items[1].deliveryOrderId, "do-later");
+  assert.equal(invoice.items[1].deliveryOrderId, "46");
   assert.equal(invoice.items[1].noSchedule, "S-LATER");
   assert.equal(invoice.items[2].deliveryOrderId, null);
   assert.equal(invoice.items[2].noSchedule, "-");

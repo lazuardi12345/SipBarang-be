@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { Tarif } from "../../../domain/entities/Tarif.js";
 
 export class CreateTarifUseCase {
@@ -39,7 +38,6 @@ export class CreateTarifUseCase {
 
     return this.tarifRepository.create(
       new Tarif({
-        id: `tarif-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
         areaDistribusi,
         tujuanKirim,
         total,

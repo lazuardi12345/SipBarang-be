@@ -8,6 +8,7 @@ import { DeliveryOrderScheduleRepository } from "./delivery-order/DeliveryOrderS
 import { DeliveryOrderDocumentRepository } from "./delivery-order/DeliveryOrderDocumentRepository.js";
 import { DeliveryOrderReportRepository } from "./delivery-order/DeliveryOrderReportRepository.js";
 import { DeliveryOrderConfirmationRepository } from "./delivery-order/DeliveryOrderConfirmationRepository.js";
+import { nextSequentialId } from "../database/sequentialId.js";
 
 export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
   constructor(prismaClient) {
@@ -160,8 +161,23 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
     const row = await this.prisma.deliveryOrder.create({
       data: {
         ...this._toPrismaData(order),
-        ...(schedule ? { schedule: { create: schedule } } : {}),
-        ...(document ? { document: { create: document } } : {}),
+        id: await nextSequentialId(this.prisma, "delivery_orders"),
+        ...(schedule ? {
+          schedule: {
+            create: {
+              id: await nextSequentialId(this.prisma, "delivery_order_schedules"),
+              ...schedule,
+            },
+          },
+        } : {}),
+        ...(document ? {
+          document: {
+            create: {
+              id: await nextSequentialId(this.prisma, "delivery_order_documents"),
+              ...document,
+            },
+          },
+        } : {}),
       },
       include: this.include,
     });
@@ -180,13 +196,47 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
 
     const schedule = this._scheduleData(order);
     const document = this._documentData(order);
+    const [existingSchedule, existingDocument] = await Promise.all([
+      schedule
+        ? this.prisma.deliveryOrderSchedule.findUnique({
+            where: { orderId: order.id },
+            select: { id: true },
+          })
+        : null,
+      document
+        ? this.prisma.deliveryOrderDocument.findUnique({
+            where: { orderId: order.id },
+            select: { id: true },
+          })
+        : null,
+    ]);
 
     const row = await this.prisma.deliveryOrder.update({
       where: { id: order.id },
       data: {
         ...this._toPrismaData(order),
-        ...(schedule ? { schedule: { upsert: { create: schedule, update: schedule } } } : {}),
-        ...(document ? { document: { upsert: { create: document, update: document } } } : {}),
+        ...(schedule ? {
+          schedule: {
+            upsert: {
+              create: {
+                id: existingSchedule?.id || await nextSequentialId(this.prisma, "delivery_order_schedules"),
+                ...schedule,
+              },
+              update: schedule,
+            },
+          },
+        } : {}),
+        ...(document ? {
+          document: {
+            upsert: {
+              create: {
+                id: existingDocument?.id || await nextSequentialId(this.prisma, "delivery_order_documents"),
+                ...document,
+              },
+              update: document,
+            },
+          },
+        } : {}),
       },
       include: this.include,
     });

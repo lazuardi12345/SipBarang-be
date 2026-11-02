@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { DeliveryOrder, StatusDO } from "../../../domain/entities/DeliveryOrder.js";
 
 export class CreateDeliveryOrderUseCase {
@@ -32,10 +31,7 @@ export class CreateDeliveryOrderUseCase {
     const totalOrders = await this.deliveryOrderRepository.count();
     const noDO = this.generateNoDO(totalOrders + 1);
     const now = new Date().toISOString();
-    const id = `do-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
-
     const order = new DeliveryOrder({
-      id,
       noDO,
       tanggalKirim: input.tanggalKirim || now,
 

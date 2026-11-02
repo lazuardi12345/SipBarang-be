@@ -5,7 +5,12 @@ import { MysqlDeliveryOrderRepository } from "../src/infrastructure/repositories
 
 test("delivery report repository creates a report when none exists", async () => {
   let created;
+  let nextId = 0;
   const repository = new DeliveryOrderReportRepository({
+    $transaction: async (callback) => callback({
+      $executeRaw: async () => { nextId += 1; },
+      $queryRaw: async () => [{ lastValue: nextId }],
+    }),
     deliveryOrderReport: {
       findFirst: async () => null,
       create: async ({ data }) => {
@@ -21,6 +26,7 @@ test("delivery report repository creates a report when none exists", async () =>
   });
 
   assert.equal(created.orderId, "do-1");
+  assert.equal(created.id, "1");
   assert.equal(created.buktiPengirimanUrl, "data:image/jpeg;base64,photo");
 });
 

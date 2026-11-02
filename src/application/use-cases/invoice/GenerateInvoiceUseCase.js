@@ -87,10 +87,7 @@ export class GenerateInvoiceUseCase {
     }
 
     const now = new Date().toISOString();
-    const id = `inv-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
-
     const invoice = new Invoice({
-      id,
       verificationToken: crypto.randomBytes(32).toString("hex"),
       noInvoice,
       tanggalInvoice: now,

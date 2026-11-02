@@ -1,3 +1,5 @@
+import { nextSequentialId } from "../../database/sequentialId.js";
+
 /**
  * DeliveryOrderConfirmationRepository
  * Mapping khusus untuk table delivery_order_confirmations.
@@ -26,6 +28,7 @@ export class DeliveryOrderConfirmationRepository {
   async create(orderId, order) {
     return this.prisma.deliveryOrderConfirmation.create({
       data: {
+        id: await nextSequentialId(this.prisma, "delivery_order_confirmations"),
         orderId,
         ...this.toPrismaData(order),
       },

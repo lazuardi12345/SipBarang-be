@@ -49,6 +49,39 @@ async function migrate() {
     }
   }
 
+  for (const [scope, table] of [
+    ["users", "users"],
+    ["tarifs", "tarifs"],
+    ["delivery_orders", "delivery_orders"],
+    ["delivery_order_schedules", "delivery_order_schedules"],
+    ["delivery_order_documents", "delivery_order_documents"],
+    ["delivery_order_approvals", "delivery_order_approvals"],
+    ["delivery_order_reports", "delivery_order_reports"],
+    ["delivery_order_confirmations", "delivery_order_confirmations"],
+    ["delivery_order_histories", "delivery_order_histories"],
+    ["invoices", "invoices"],
+    ["invoice_items", "invoice_items"],
+  ]) {
+    const [existingCounter] = await conn.execute(
+      "SELECT `scope` FROM `id_counters` WHERE `scope` = ? LIMIT 1",
+      [scope]
+    );
+    if (existingCounter.length > 0) continue;
+
+    const [rows] = await conn.query(
+      `SELECT COUNT(*) AS row_count,
+              COALESCE(MAX(CASE WHEN \`id\` REGEXP '^[0-9]+$'
+                                THEN CAST(\`id\` AS UNSIGNED)
+                                ELSE 0 END), 0) AS max_id
+       FROM \`${table}\``
+    );
+    const lastValue = Math.max(Number(rows[0].row_count), Number(rows[0].max_id));
+    await conn.execute(
+      "INSERT IGNORE INTO `id_counters` (`scope`, `last_value`) VALUES (?, ?)",
+      [scope, lastValue]
+    );
+  }
+
   for (const [table, column] of [
     ["users", "active"],
     ["tarifs", "active"],

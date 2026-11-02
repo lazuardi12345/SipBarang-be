@@ -56,7 +56,16 @@ test("superadmin overview returns management data without selecting password has
 
 test("superadmin creates a delivery order with schedule and document details", async () => {
   let createInput;
+  const counters = new Map();
   const controller = new SuperadminController({
+    $transaction: async (callback) => callback({
+      $executeRaw: async (_query, scope, count) => {
+        counters.set(scope, (counters.get(scope) || 0) + count);
+      },
+      $queryRaw: async (_query, scope) => [
+        { lastValue: counters.get(scope) },
+      ],
+    }),
     tarif: { findUnique: async () => ({ id: "tarif-1", active: true }) },
     deliveryOrder: {
       create: async ({ data }) => {
@@ -81,10 +90,13 @@ test("superadmin creates a delivery order with schedule and document details", a
   assert.equal(response.statusCode, 201);
   assert.equal(createInput.biayaEkspedisi, 0);
   assert.deepEqual(createInput.schedule.create, {
+    id: "1",
     noSchedule: "SCH-001",
     tglSchedule: new Date("2026-10-06"),
   });
+  assert.equal(createInput.id, "1");
   assert.equal(createInput.document.create.noDocPerusahaan, "SJ-001");
+  assert.equal(createInput.document.create.id, "1");
 });
 
 test("superadmin cannot create a delivery order using a deactivated tariff", async () => {

@@ -4,6 +4,7 @@
 import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository.js";
 import { Invoice } from "../../domain/entities/Invoice.js";
 import { InvoiceItemRepository } from "./invoice/InvoiceItemRepository.js";
+import { nextSequentialId } from "../database/sequentialId.js";
 
 function getScheduleMatchKey(item) {
   const area = String(item.areaDistribusi || "").trim().toLocaleLowerCase("id-ID");
@@ -14,8 +15,7 @@ function getScheduleMatchKey(item) {
 }
 
 function isUnlinkedImportedRecapItem(item) {
-  return !item.deliveryOrderId &&
-    String(item.id || "").startsWith("imp-pdf-inv-ayt-pl-003-item-");
+  return !item.deliveryOrderId;
 }
 
 export class MysqlInvoiceRepository extends IInvoiceRepository {
@@ -59,7 +59,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
     const matchingDeliveryOrders = matchPairs.size > 0
       ? await this.prisma.deliveryOrder.findMany({
           where: {
-            id: { startsWith: "imp-pdf-rekap" },
+            noDo: { startsWith: "IMPORT-REKAP" },
             OR: [...matchPairs.values()],
           },
           include: { schedule: true, document: true },
@@ -162,17 +162,17 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
     return data;
   }
 
-  _invoiceItemsData(invoice) {
+  async _invoiceItemsData(invoice) {
     return this.itemRepository.toPrismaData(invoice.items);
   }
 
   async create(invoice) {
     const row = await this.prisma.invoice.create({
       data: {
-        id: invoice.id,
+        id: await nextSequentialId(this.prisma, "invoices"),
         ...this._toPrismaData(invoice),
         items: {
-          create: this._invoiceItemsData(invoice),
+          create: await this._invoiceItemsData(invoice),
         },
       },
       include: {
@@ -197,7 +197,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
         ...this._toPrismaData(invoice),
         items: {
           deleteMany: {},
-          create: this._invoiceItemsData(invoice),
+          create: await this._invoiceItemsData(invoice),
         },
       },
       include: {
