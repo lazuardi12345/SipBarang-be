@@ -36,6 +36,11 @@ enum InvoiceStatus {
   DIBATALKAN
 }
 
+enum KepemilikanKendaraan {
+  MILIK_PRIBADI
+  ORANG_LAIN
+}
+
 model User {
   id           String   @id @default(uuid()) @db.VarChar(64)
   nama         String   @db.VarChar(150)
@@ -58,6 +63,20 @@ model Tarif {
   createdAt       DateTime @default(now()) @map("created_at")
 
   @@map("tarifs")
+}
+
+model Kendaraan {
+  id          String               @id @default(uuid()) @db.VarChar(64)
+  noPolisi    String               @unique @map("no_polisi") @db.VarChar(30)
+  tipeMobil   String               @map("tipe_mobil") @db.VarChar(100)
+  kepemilikan KepemilikanKendaraan @default(MILIK_PRIBADI)
+  namaPemilik String?              @map("nama_pemilik") @db.VarChar(150)
+  catatan     String?              @db.Text
+  active      Boolean              @default(true) @map("active")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  @@map("kendaraans")
 }
 
 model DeliveryOrder {
@@ -240,4 +259,18 @@ model IdCounter {
   lastValue Int    @default(0) @map("last_value")
 
   @@map("id_counters")
+}
+
+model PengeluaranLain {
+  id          String   @id @default(uuid()) @db.VarChar(64)
+  tanggal     DateTime @default(now()) @db.Date
+  kategori    String?  @db.VarChar(100)
+  nominal     Decimal  @db.Decimal(15, 2)
+  keterangan  String   @db.Text
+  dibuatOleh  String?  @map("dibuat_oleh") @db.VarChar(150)
+  catatan     String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("pengeluaran_lains")
 }

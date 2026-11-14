@@ -42,6 +42,23 @@ export const CREATE_TARIFS_TABLE = `
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `;
 
+export const CREATE_KENDARAANS_TABLE = `
+  CREATE TABLE IF NOT EXISTS \`kendaraans\` (
+    \`id\`           VARCHAR(64)  NOT NULL PRIMARY KEY,
+    \`no_polisi\`     VARCHAR(30)  NOT NULL UNIQUE,
+    \`tipe_mobil\`    VARCHAR(100) NOT NULL,
+    \`kepemilikan\`   ENUM('MILIK_PRIBADI','ORANG_LAIN') NOT NULL DEFAULT 'MILIK_PRIBADI',
+    \`nama_pemilik\`  VARCHAR(150) NULL,
+    \`catatan\`       TEXT         NULL,
+    \`active\`        BOOLEAN      NOT NULL DEFAULT TRUE,
+    \`created_at\`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    \`updated_at\`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_no_polisi (\`no_polisi\`),
+    INDEX idx_kepemilikan (\`kepemilikan\`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+`;
+
 export const CREATE_DELIVERY_ORDERS_TABLE = `
   CREATE TABLE IF NOT EXISTS \`delivery_orders\` (
     \`id\`                VARCHAR(64)   NOT NULL PRIMARY KEY,
@@ -232,9 +249,25 @@ export const CREATE_ID_COUNTERS_TABLE = `
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `;
 
+export const CREATE_PENGELUARAN_LAINS_TABLE = `
+  CREATE TABLE IF NOT EXISTS \`pengeluaran_lains\` (
+    \`id\`          VARCHAR(64)    NOT NULL PRIMARY KEY,
+    \`tanggal\`     DATE           NOT NULL,
+    \`kategori\`    VARCHAR(100)   NULL,
+    \`nominal\`     DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+    \`keterangan\`  TEXT           NOT NULL,
+    \`dibuat_oleh\` VARCHAR(150)   NULL,
+    \`catatan\`     TEXT           NULL,
+    \`created_at\`  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    \`updated_at\`  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_tanggal (\`tanggal\`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+`;
+
 export const ALL_MIGRATIONS = [
   { name: "users", sql: CREATE_USERS_TABLE },
   { name: "tarifs", sql: CREATE_TARIFS_TABLE },
+  { name: "kendaraans", sql: CREATE_KENDARAANS_TABLE },
   { name: "delivery_orders", sql: CREATE_DELIVERY_ORDERS_TABLE },
   { name: "delivery_order_schedules", sql: CREATE_DELIVERY_ORDER_SCHEDULES_TABLE },
   { name: "delivery_order_documents", sql: CREATE_DELIVERY_ORDER_DOCUMENTS_TABLE },
@@ -245,4 +278,5 @@ export const ALL_MIGRATIONS = [
   { name: "invoices", sql: CREATE_INVOICES_TABLE },
   { name: "invoice_items", sql: CREATE_INVOICE_ITEMS_TABLE },
   { name: "id_counters", sql: CREATE_ID_COUNTERS_TABLE },
+  { name: "pengeluaran_lains", sql: CREATE_PENGELUARAN_LAINS_TABLE },
 ];

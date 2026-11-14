@@ -64,7 +64,10 @@ export class CreateDeliveryOrderUseCase {
       biayaEkspedisi: Number(tarif.total || 0),
       pph2Persen: Math.round(Number(tarif.total || 0) * 0.02),
       totalSetelahPPh: Number(tarif.total || 0) - Math.round(Number(tarif.total || 0) * 0.02),
-      uangJalanSupir: null,
+      uangJalanSupir:
+        input.uangJalanSupir !== undefined && input.uangJalanSupir !== null && input.uangJalanSupir !== ""
+          ? Number(input.uangJalanSupir)
+          : null,
 
       itemsBarang: [],
       namaBarang: "",
@@ -73,7 +76,7 @@ export class CreateDeliveryOrderUseCase {
       beratBarangKg: 0,
       catatanBarang: "",
 
-      status: StatusDO.DRAFT,
+      status: input.status || StatusDO.MENUNGGU_ACC,
       dibuatOleh: {
         id: user.id,
         nama: user.nama,

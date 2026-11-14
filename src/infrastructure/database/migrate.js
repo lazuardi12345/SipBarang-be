@@ -52,6 +52,7 @@ async function migrate() {
   for (const [scope, table] of [
     ["users", "users"],
     ["tarifs", "tarifs"],
+    ["kendaraans", "kendaraans"],
     ["delivery_orders", "delivery_orders"],
     ["delivery_order_schedules", "delivery_order_schedules"],
     ["delivery_order_documents", "delivery_order_documents"],
@@ -85,6 +86,7 @@ async function migrate() {
   for (const [table, column] of [
     ["users", "active"],
     ["tarifs", "active"],
+    ["kendaraans", "active"],
     ["delivery_order_reports", "active"],
   ]) {
     const [columns] = await conn.query(

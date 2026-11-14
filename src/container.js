@@ -7,6 +7,8 @@ import { MysqlUserRepository } from "./infrastructure/repositories/MysqlUserRepo
 import { MysqlDeliveryOrderRepository } from "./infrastructure/repositories/MysqlDeliveryOrderRepository.js";
 import { MysqlInvoiceRepository } from "./infrastructure/repositories/MysqlInvoiceRepository.js";
 import { MysqlTarifRepository } from "./infrastructure/repositories/MysqlTarifRepository.js";
+import { MysqlKendaraanRepository } from "./infrastructure/repositories/MysqlKendaraanRepository.js";
+import { MysqlPengeluaranLainRepository } from "./infrastructure/repositories/MysqlPengeluaranLainRepository.js";
 import { JwtService } from "./infrastructure/security/JwtService.js";
 import { createAuthMiddleware } from "./infrastructure/http/middlewares/authMiddleware.js";
 import { createRoleMiddleware } from "./infrastructure/http/middlewares/roleMiddleware.js";
@@ -39,16 +41,30 @@ import { CreateTarifUseCase } from "./application/use-cases/tarif/CreateTarifUse
 import { UpdateTarifUseCase } from "./application/use-cases/tarif/UpdateTarifUseCase.js";
 import { DeleteTarifUseCase } from "./application/use-cases/tarif/DeleteTarifUseCase.js";
 
+import { GetKendaraansUseCase } from "./application/use-cases/kendaraan/GetKendaraansUseCase.js";
+import { CreateKendaraanUseCase } from "./application/use-cases/kendaraan/CreateKendaraanUseCase.js";
+import { UpdateKendaraanUseCase } from "./application/use-cases/kendaraan/UpdateKendaraanUseCase.js";
+import { DeleteKendaraanUseCase } from "./application/use-cases/kendaraan/DeleteKendaraanUseCase.js";
+
+import { GetPengeluaranLainUseCase } from "./application/use-cases/pengeluaran-lain/GetPengeluaranLainUseCase.js";
+import { CreatePengeluaranLainUseCase } from "./application/use-cases/pengeluaran-lain/CreatePengeluaranLainUseCase.js";
+import { UpdatePengeluaranLainUseCase } from "./application/use-cases/pengeluaran-lain/UpdatePengeluaranLainUseCase.js";
+import { DeletePengeluaranLainUseCase } from "./application/use-cases/pengeluaran-lain/DeletePengeluaranLainUseCase.js";
+
 import { AuthController } from "./interfaces/http/controllers/AuthController.js";
 import { DeliveryOrderController } from "./interfaces/http/controllers/DeliveryOrderController.js";
 import { InvoiceController } from "./interfaces/http/controllers/InvoiceController.js";
 import { TarifController } from "./interfaces/http/controllers/TarifController.js";
+import { KendaraanController } from "./interfaces/http/controllers/KendaraanController.js";
+import { PengeluaranLainController } from "./interfaces/http/controllers/PengeluaranLainController.js";
 import { SuperadminController } from "./interfaces/http/controllers/SuperadminController.js";
 
 import { createAuthRoutes } from "./interfaces/http/routes/authRoutes.js";
 import { createDeliveryOrderRoutes } from "./interfaces/http/routes/deliveryOrderRoutes.js";
 import { createInvoiceRoutes } from "./interfaces/http/routes/invoiceRoutes.js";
 import { createTarifRoutes } from "./interfaces/http/routes/tarifRoutes.js";
+import { createKendaraanRoutes } from "./interfaces/http/routes/kendaraanRoutes.js";
+import { createPengeluaranLainRoutes } from "./interfaces/http/routes/pengeluaranLainRoutes.js";
 import { createSuperadminRoutes } from "./interfaces/http/routes/superadminRoutes.js";
 import { createApiRouter } from "./interfaces/http/routes/apiRouter.js";
 
@@ -57,6 +73,8 @@ export async function createContainer() {
   const deliveryOrderRepository = new MysqlDeliveryOrderRepository(prisma);
   const invoiceRepository = new MysqlInvoiceRepository(prisma);
   const tarifRepository = new MysqlTarifRepository(prisma);
+  const kendaraanRepository = new MysqlKendaraanRepository(prisma);
+  const pengeluaranLainRepository = new MysqlPengeluaranLainRepository(prisma);
 
   const jwtService = new JwtService();
   const authMiddleware = createAuthMiddleware(jwtService, userRepository);
@@ -94,6 +112,16 @@ export async function createContainer() {
   const updateTarifUseCase = new UpdateTarifUseCase(tarifRepository);
   const deleteTarifUseCase = new DeleteTarifUseCase(tarifRepository);
 
+  const getKendaraansUseCase = new GetKendaraansUseCase(kendaraanRepository);
+  const createKendaraanUseCase = new CreateKendaraanUseCase(kendaraanRepository);
+  const updateKendaraanUseCase = new UpdateKendaraanUseCase(kendaraanRepository);
+  const deleteKendaraanUseCase = new DeleteKendaraanUseCase(kendaraanRepository);
+
+  const getPengeluaranLainUseCase = new GetPengeluaranLainUseCase(pengeluaranLainRepository);
+  const createPengeluaranLainUseCase = new CreatePengeluaranLainUseCase(pengeluaranLainRepository);
+  const updatePengeluaranLainUseCase = new UpdatePengeluaranLainUseCase(pengeluaranLainRepository);
+  const deletePengeluaranLainUseCase = new DeletePengeluaranLainUseCase(pengeluaranLainRepository);
+
   const authController = new AuthController(registerUseCase, loginUseCase, getProfileUseCase);
   const deliveryOrderController = new DeliveryOrderController({
     createDeliveryOrderUseCase,
@@ -126,12 +154,26 @@ export async function createContainer() {
     updateTarifUseCase,
     deleteTarifUseCase
   );
+  const kendaraanController = new KendaraanController(
+    getKendaraansUseCase,
+    createKendaraanUseCase,
+    updateKendaraanUseCase,
+    deleteKendaraanUseCase
+  );
+  const pengeluaranLainController = new PengeluaranLainController({
+    getPengeluaranLainUseCase,
+    createPengeluaranLainUseCase,
+    updatePengeluaranLainUseCase,
+    deletePengeluaranLainUseCase,
+  });
   const superadminController = new SuperadminController(prisma);
 
   const authRoutes = createAuthRoutes(authController, authMiddleware);
   const deliveryOrderRoutes = createDeliveryOrderRoutes(deliveryOrderController, authMiddleware, roleMiddleware);
   const invoiceRoutes = createInvoiceRoutes(invoiceController, authMiddleware, roleMiddleware);
   const tarifRoutes = createTarifRoutes(tarifController, authMiddleware, roleMiddleware);
+  const kendaraanRoutes = createKendaraanRoutes(kendaraanController, authMiddleware, roleMiddleware);
+  const pengeluaranLainRoutes = createPengeluaranLainRoutes(pengeluaranLainController, authMiddleware, roleMiddleware);
   const adminRoutes = createSuperadminRoutes(superadminController, authMiddleware, roleMiddleware);
 
   const apiRouter = createApiRouter({
@@ -139,6 +181,8 @@ export async function createContainer() {
     deliveryOrderRoutes,
     invoiceRoutes,
     tarifRoutes,
+    kendaraanRoutes,
+    pengeluaranLainRoutes,
     adminRoutes,
     authMiddleware,
   });
@@ -149,6 +193,8 @@ export async function createContainer() {
     deliveryOrderRepository,
     invoiceRepository,
     tarifRepository,
+    kendaraanRepository,
+    pengeluaranLainRepository,
     apiRouter,
   };
 }

@@ -6,6 +6,8 @@ export function createApiRouter({
   deliveryOrderRoutes,
   invoiceRoutes,
   tarifRoutes,
+  kendaraanRoutes,
+  pengeluaranLainRoutes,
   adminRoutes,
   authMiddleware,
 }) {
@@ -14,7 +16,7 @@ export function createApiRouter({
   apiRouter.use((req, res, next) => {
     const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
     const resource = req.path.split("/").filter(Boolean)[0];
-    if (!isMutation || !["delivery-orders", "invoices", "tarif", "admin"].includes(resource)) {
+    if (!isMutation || !["delivery-orders", "invoices", "tarif", "kendaraan", "pengeluaran-lain", "admin"].includes(resource)) {
       next();
       return;
     }
@@ -65,6 +67,8 @@ export function createApiRouter({
   apiRouter.use("/delivery-orders", deliveryOrderRoutes);
   apiRouter.use("/invoices", invoiceRoutes);
   apiRouter.use("/tarif", tarifRoutes);
+  apiRouter.use("/kendaraan", kendaraanRoutes);
+  apiRouter.use("/pengeluaran-lain", pengeluaranLainRoutes);
   apiRouter.use("/admin", adminRoutes);
 
   return apiRouter;

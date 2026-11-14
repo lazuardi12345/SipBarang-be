@@ -7,11 +7,11 @@ import path from "path";
 const require = createRequire(import.meta.url);
 const dotenv = require("dotenv");
 
-// Resolve path .env secara eksplisit dari root project (4 level ke atas dari file ini)
+// Resolve path .env secara eksplisit dari backend dan root project
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const envPath = path.resolve(__dirname, "../../../../.env");
-dotenv.config({ path: envPath });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../../.env") });
 
 // Pastikan DATABASE_URL tersedia (fallback dari variabel individu)
 if (!process.env.DATABASE_URL) {

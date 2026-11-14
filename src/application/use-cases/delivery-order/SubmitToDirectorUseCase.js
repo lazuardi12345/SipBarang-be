@@ -26,23 +26,19 @@ export class SubmitToDirectorUseCase {
       throw err;
     }
 
-    const noDocPerusahaan = docData.noDocPerusahaan?.trim() || order.noDocPerusahaan?.trim();
-    const tglDocPerusahaan = docData.tglDocPerusahaan || order.tglDocPerusahaan;
+    const noDocPerusahaan = docData.noDocPerusahaan?.trim() || order.noDocPerusahaan?.trim() || "";
+    const tglDocPerusahaan = docData.tglDocPerusahaan || order.tglDocPerusahaan || null;
     const noSchedule = String(docData.noSchedule ?? order.noSchedule ?? "").trim();
     const tglSchedule = docData.tglSchedule ?? order.tglSchedule;
     const tipeMobilRit = String(docData.tipeMobilRit ?? order.tipeMobilRit ?? "").trim();
     const namaSupir = String(docData.namaSupir ?? order.namaSupir ?? "").trim();
+    const noHpSupir = String(docData.noHpSupir ?? order.noHpSupir ?? "").trim();
     const noPolisiKendaraan = String(docData.noPolisiKendaraan ?? order.noPolisiKendaraan ?? "").trim();
     const rawUangJalanSupir = docData.uangJalanSupir;
     let uangJalanSupir = order.uangJalanSupir ?? null;
 
-    if (!noDocPerusahaan || !tglDocPerusahaan) {
-      const err = new Error("No. Doc dan tanggal surat jalan perusahaan wajib dilengkapi sebelum pengajuan");
-      err.statusCode = 400;
-      throw err;
-    }
-    if (!noSchedule || !tglSchedule || !tipeMobilRit || !namaSupir || !noPolisiKendaraan) {
-      const err = new Error("No. Schedule, tanggal, tipe mobil/rit, nama supir, dan nomor polisi wajib dilengkapi sebelum pengajuan");
+    if (!noSchedule || !tglSchedule || !tipeMobilRit || !noPolisiKendaraan) {
+      const err = new Error("No. Schedule, tanggal schedule, tipe mobil/rit, dan nomor polisi wajib dilengkapi sebelum pengajuan SO");
       err.statusCode = 400;
       throw err;
     }
@@ -67,6 +63,7 @@ export class SubmitToDirectorUseCase {
       tglSchedule,
       tipeMobilRit,
       namaSupir,
+      noHpSupir: noHpSupir || order.noHpSupir,
       noPolisiKendaraan,
       noDocPerusahaan,
       tglDocPerusahaan,
