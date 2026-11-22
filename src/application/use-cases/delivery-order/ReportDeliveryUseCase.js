@@ -5,7 +5,7 @@ export class ReportDeliveryUseCase {
     this.deliveryOrderRepository = deliveryOrderRepository;
   }
 
-  async execute({ orderId, namaPenerimaBarang, catatanPelaporan, buktiPengirimanUrl }) {
+  async execute({ orderId, shipmentId, namaPenerimaBarang, catatanPelaporan, buktiPengirimanUrl }) {
     if (!orderId || !namaPenerimaBarang) {
       const err = new Error("Order ID dan nama penerima barang wajib diisi");
       err.statusCode = 400;
@@ -19,12 +19,30 @@ export class ReportDeliveryUseCase {
       throw err;
     }
 
-    if (
-      order.status !== StatusDO.DISETUJUI &&
-      order.status !== StatusDO.DALAM_PENGIRIMAN
-    ) {
+    if (shipmentId) {
+      const shipment = order.shipments?.find((item) => item.id === shipmentId);
+      if (!shipment) {
+        const err = new Error("DOC / kendaraan tidak ditemukan pada SO ini");
+        err.statusCode = 404;
+        throw err;
+      }
+      if (shipment.status !== StatusDO.DALAM_PENGIRIMAN) {
+        const err = new Error("Kendaraan ini sudah dilaporkan tiba atau tidak sedang dalam perjalanan");
+        err.statusCode = 400;
+        throw err;
+      }
+
+      return this.deliveryOrderRepository.reportShipment(orderId, shipmentId, {
+        namaPenerimaBarang,
+        catatanPelaporan: catatanPelaporan || "",
+        buktiPengirimanUrl: buktiPengirimanUrl || "",
+        tanggalDiterima: new Date().toISOString(),
+      });
+    }
+
+    if (order.status !== StatusDO.DALAM_PENGIRIMAN) {
       const err = new Error(
-        "Pengiriman hanya bisa dilaporkan setelah Surat Jalan disetujui oleh direktur"
+        "Pengiriman hanya bisa dilaporkan setelah dokumen dan detail armada dilengkapi"
       );
       err.statusCode = 400;
       throw err;

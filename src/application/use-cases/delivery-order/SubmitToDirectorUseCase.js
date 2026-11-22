@@ -2,8 +2,8 @@ import { StatusDO } from "../../../domain/entities/DeliveryOrder.js";
 
 /**
  * Use Case: Mengajukan Surat Jalan (DO) ke Direktur untuk di-ACC.
- * Dilakukan setelah Surat Jalan dari perusahaan/pabrik sudah turun/diinput.
- * Mengubah status dari DRAFT / PLANNING -> MENUNGGU_ACC
+ * Mengajukan data dasar SO dan uang jalan dari DRAFT / PLANNING ke direktur.
+ * Dokumen perusahaan dan detail armada diisi setelah SO disetujui.
  */
 export class SubmitToDirectorUseCase {
   constructor(deliveryOrderRepository) {
@@ -26,19 +26,13 @@ export class SubmitToDirectorUseCase {
       throw err;
     }
 
-    const noDocPerusahaan = docData.noDocPerusahaan?.trim() || order.noDocPerusahaan?.trim() || "";
-    const tglDocPerusahaan = docData.tglDocPerusahaan || order.tglDocPerusahaan || null;
     const noSchedule = String(docData.noSchedule ?? order.noSchedule ?? "").trim();
     const tglSchedule = docData.tglSchedule ?? order.tglSchedule;
-    const tipeMobilRit = String(docData.tipeMobilRit ?? order.tipeMobilRit ?? "").trim();
-    const namaSupir = String(docData.namaSupir ?? order.namaSupir ?? "").trim();
-    const noHpSupir = String(docData.noHpSupir ?? order.noHpSupir ?? "").trim();
-    const noPolisiKendaraan = String(docData.noPolisiKendaraan ?? order.noPolisiKendaraan ?? "").trim();
     const rawUangJalanSupir = docData.uangJalanSupir;
     let uangJalanSupir = order.uangJalanSupir ?? null;
 
-    if (!noSchedule || !tglSchedule || !tipeMobilRit || !noPolisiKendaraan) {
-      const err = new Error("No. Schedule, tanggal schedule, tipe mobil/rit, dan nomor polisi wajib dilengkapi sebelum pengajuan SO");
+    if (!noSchedule || !tglSchedule) {
+      const err = new Error("No. SO dan tanggal SO wajib diisi sebelum pengajuan ke Direktur");
       err.statusCode = 400;
       throw err;
     }
@@ -61,14 +55,7 @@ export class SubmitToDirectorUseCase {
       ...order,
       noSchedule,
       tglSchedule,
-      tipeMobilRit,
-      namaSupir,
-      noHpSupir: noHpSupir || order.noHpSupir,
-      noPolisiKendaraan,
-      noDocPerusahaan,
-      tglDocPerusahaan,
       uangJalanSupir,
-      keteranganDoc: docData.keteranganDoc !== undefined ? docData.keteranganDoc : order.keteranganDoc,
       status: StatusDO.MENUNGGU_ACC,
       updatedAt: new Date().toISOString(),
     };

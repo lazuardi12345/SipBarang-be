@@ -21,6 +21,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
     this.include = {
       schedule: true,
       document: true,
+      shipments: { orderBy: { createdAt: "asc" } },
       reports: { where: { active: true }, orderBy: { createdAt: "desc" } },
       approvals: true,
       confirmations: { orderBy: { createdAt: "desc" } },
@@ -40,6 +41,15 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
 
     const schedule = row.schedule || {};
     const document = row.document || {};
+    const shipments = Array.isArray(row.shipments)
+      ? row.shipments.map((shipment) => ({
+          ...shipment,
+          tglDocPerusahaan: this._toDateString(shipment.tglDocPerusahaan),
+          tanggalDiterima: this._toDateString(shipment.tanggalDiterima),
+          createdAt: this._toDateString(shipment.createdAt),
+          updatedAt: this._toDateString(shipment.updatedAt),
+        }))
+      : [];
     const reports = Array.isArray(row.reports)
       ? [...row.reports].sort((a, b) => {
           const dateA = new Date(a.createdAt || 0).getTime();
@@ -72,11 +82,11 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       gudangAsal: this._firstDefined(row.gudangAsal, schedule.gudangAsal),
       namaSupir: this._firstDefined(row.namaSupir, schedule.namaSupir),
       noHpSupir: this._firstDefined(row.noHpSupir, schedule.noHpSupir),
-      noPolisiKendaraan: this._firstDefined(row.noPolisiKendaraan, schedule.noPolisiKendaraan),
-      jenisKendaraan: this._firstDefined(row.jenisKendaraan, schedule.jenisKendaraan),
+      noPolisiKendaraan: this._firstDefined(row.noPolisiKendaraan, schedule.noPolisiKendaraan, shipments[0]?.noPolisiKendaraan),
+      jenisKendaraan: this._firstDefined(row.jenisKendaraan, schedule.jenisKendaraan, shipments[0]?.jenisKendaraan),
 
-      noDocPerusahaan: this._firstDefined(row.noDocPerusahaan, document.noDocPerusahaan),
-      tglDocPerusahaan: this._toDateString(this._firstDefined(row.tglDocPerusahaan, document.tglDocPerusahaan)),
+      noDocPerusahaan: this._firstDefined(row.noDocPerusahaan, document.noDocPerusahaan, shipments[0]?.noDocPerusahaan),
+      tglDocPerusahaan: this._toDateString(this._firstDefined(row.tglDocPerusahaan, document.tglDocPerusahaan, shipments[0]?.tglDocPerusahaan)),
       namaToko: this._firstDefined(row.namaToko, document.namaToko),
       salesman: this._firstDefined(row.salesman, document.salesman),
       agen: this._firstDefined(row.agen, document.agen),
@@ -95,6 +105,7 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       pph2Persen: Number(this._firstDefined(row.pph2Persen, row.pph2, Math.round(Number(row.biayaEkspedisi || 0) * 0.02)) || 0),
       totalSetelahPPh: Number(this._firstDefined(row.totalSetelahPPh, row.totalSetelahPph, row.totalSetAfterPPh, Number(row.biayaEkspedisi || 0) - Math.round(Number(row.biayaEkspedisi || 0) * 0.02)) || 0),
       uangJalanSupir: row.uangJalanSupir == null ? null : Number(row.uangJalanSupir),
+      shipments,
 
 
       status: row.status,
@@ -243,6 +254,12 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
 
     if (order.status === "TERKIRIM" && existing.status !== "TERKIRIM") {
       await this.confirmationRepository.create(order.id, order);
+      if (this.prisma.deliveryOrderShipment?.updateMany) {
+        await this.prisma.deliveryOrderShipment.updateMany({
+          where: { orderId: order.id, status: "MENUNGGU_KONFIRMASI" },
+          data: { status: "TERKIRIM" },
+        });
+      }
     }
     await this.reportRepository.upsert(order.id, order);
     const updatedRow = await this.prisma.deliveryOrder.findUnique({
@@ -258,6 +275,58 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
       include: this.include,
     });
     return this._toEntity(row);
+  }
+
+  async addShipment(orderId, data) {
+    const order = await this.prisma.deliveryOrder.findUnique({
+      where: { id: orderId },
+      select: { status: true },
+    });
+    if (!order) throw new Error("Data SO tidak ditemukan");
+    if (!["DISETUJUI", "APPROVED", "DALAM_PENGIRIMAN"].includes(order.status)) {
+      throw new Error("DOC hanya dapat ditambahkan setelah SO disetujui Direktur");
+    }
+
+    await this.prisma.deliveryOrderShipment.create({
+      data: {
+        id: await nextSequentialId(this.prisma, "delivery_order_shipments"),
+        orderId,
+        ...data,
+      },
+    });
+
+    if (order.status === "DISETUJUI" || order.status === "APPROVED") {
+      await this.prisma.deliveryOrder.update({
+        where: { id: orderId },
+        data: { status: "DALAM_PENGIRIMAN" },
+      });
+    }
+
+    return this.findById(orderId);
+  }
+
+  async reportShipment(orderId, shipmentId, reportData) {
+    const shipment = await this.prisma.deliveryOrderShipment.findFirst({
+      where: { id: shipmentId, orderId },
+    });
+    if (!shipment) throw new Error("Data DOC / kendaraan tidak ditemukan pada SO ini");
+
+    await this.prisma.deliveryOrderShipment.update({
+      where: { id: shipmentId },
+      data: { ...reportData, status: "MENUNGGU_KONFIRMASI" },
+    });
+
+    const stillInTransit = await this.prisma.deliveryOrderShipment.count({
+      where: { orderId, status: "DALAM_PENGIRIMAN" },
+    });
+    if (stillInTransit === 0) {
+      await this.prisma.deliveryOrder.update({
+        where: { id: orderId },
+        data: { status: "MENUNGGU_KONFIRMASI" },
+      });
+    }
+
+    return this.findById(orderId);
   }
 
   async list() {

@@ -39,7 +39,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
     const deliveryOrders = deliveryOrderIds.length > 0
       ? await this.prisma.deliveryOrder.findMany({
           where: { id: { in: deliveryOrderIds } },
-          include: { schedule: true, document: true },
+          include: { schedule: true, document: true, shipments: { orderBy: { createdAt: "asc" } } },
         })
       : [];
     const importedRecapItems = row.noInvoice === "INV-AYT-PL-003"
@@ -62,7 +62,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
             noDo: { startsWith: "IMPORT-REKAP" },
             OR: [...matchPairs.values()],
           },
-          include: { schedule: true, document: true },
+          include: { schedule: true, document: true, shipments: { orderBy: { createdAt: "asc" } } },
         })
       : [];
     const orderById = new Map(
@@ -104,12 +104,24 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
       }
       const schedule = order.schedule || {};
       const document = order.document || {};
+      const shipments = (order.shipments || []).filter((shipment) => shipment.noDocPerusahaan);
+      const shipmentDocNumbers = shipments
+        .map((shipment) => shipment.noDocPerusahaan)
+        .filter(Boolean)
+        .join(", ");
+      const ritPerDocument = shipments.map((shipment) => ({
+        noDocPerusahaan: shipment.noDocPerusahaan,
+        rit: shipment.tipeMobilRit,
+        tglDocPerusahaan: shipment.tglDocPerusahaan,
+      }));
       return {
         ...item,
         deliveryOrderId: item.deliveryOrderId || order.id || null,
         noDO: item.noDO || order.noDo || null,
-        noDocPerusahaan: item.noDocPerusahaan || document.noDocPerusahaan || null,
+        noDocPerusahaan: shipmentDocNumbers || item.noDocPerusahaan || document.noDocPerusahaan || null,
+        ritPerDocument,
         tanggalKirim: item.tanggalKirim || order.tanggalKirim || null,
+        tglDocPerusahaan: item.tglDocPerusahaan || shipments[0]?.tglDocPerusahaan || document.tglDocPerusahaan || null,
         namaBarang:
           (item.namaBarang && item.namaBarang !== "-" ? item.namaBarang : "") ||
           document.keteranganDoc ||
@@ -117,7 +129,7 @@ export class MysqlInvoiceRepository extends IInvoiceRepository {
         tujuanKirim: item.tujuanKirim || order.tujuanKirim,
         areaDistribusi: item.areaDistribusi || order.areaDistribusi,
         noSchedule: schedule.noSchedule || "-",
-        tipeMobilRit: schedule.tipeMobilRit || "1",
+        tipeMobilRit: shipments[0]?.tipeMobilRit || schedule.tipeMobilRit || "1",
       };
     });
 

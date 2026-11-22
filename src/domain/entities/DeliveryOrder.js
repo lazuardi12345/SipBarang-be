@@ -74,6 +74,7 @@ export class DeliveryOrder {
     this.catatanPelaporan = data.catatanPelaporan || null;
     this.buktiPengirimanUrl = data.buktiPengirimanUrl || null;
     this.tanggalDiterima = data.tanggalDiterima || null;
+    this.shipments = Array.isArray(data.shipments) ? data.shipments : [];
 
     // Konfirmasi ACC Selesai Terkirim oleh Direktur
     this.dikonfirmasiOleh = data.dikonfirmasiOleh || null;

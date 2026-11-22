@@ -146,9 +146,10 @@ export class DeliveryOrderController {
   reportDelivery = async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { namaPenerimaBarang, catatanPelaporan, buktiPengirimanUrl } = req.body;
+      const { shipmentId, namaPenerimaBarang, catatanPelaporan, buktiPengirimanUrl } = req.body;
       const updated = await this.reportDeliveryUseCase.execute({
         orderId: id,
+        shipmentId,
         namaPenerimaBarang,
         catatanPelaporan,
         buktiPengirimanUrl,

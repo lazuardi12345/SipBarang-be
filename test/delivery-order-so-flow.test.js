@@ -4,17 +4,20 @@ import { CreateDeliveryOrderUseCase } from "../src/application/use-cases/deliver
 import { SubmitToDirectorUseCase } from "../src/application/use-cases/delivery-order/SubmitToDirectorUseCase.js";
 import { ApproveDeliveryOrderUseCase } from "../src/application/use-cases/delivery-order/ApproveDeliveryOrderUseCase.js";
 import { AttachDocPerusahaanUseCase } from "../src/application/use-cases/delivery-order/AttachDocPerusahaanUseCase.js";
+import { ReportDeliveryUseCase } from "../src/application/use-cases/delivery-order/ReportDeliveryUseCase.js";
 import { StatusDO } from "../src/domain/entities/DeliveryOrder.js";
 
 function createMockRepo() {
   const store = new Map();
+  let shipmentSequence = 0;
   return {
     async findById(id) {
       return store.get(id) || null;
     },
     async create(order) {
-      store.set(order.id, { ...order });
-      return store.get(order.id);
+      const created = { ...order, id: order.id || `do-test-${store.size + 1}` };
+      store.set(created.id, created);
+      return created;
     },
     async save(order) {
       store.set(order.id, { ...order });
@@ -23,6 +26,32 @@ function createMockRepo() {
     async update(order) {
       store.set(order.id, { ...order });
       return store.get(order.id);
+    },
+    async addShipment(orderId, data) {
+      const order = store.get(orderId);
+      const shipment = {
+        ...data,
+        id: `shipment-${++shipmentSequence}`,
+        orderId,
+        status: StatusDO.DALAM_PENGIRIMAN,
+      };
+      order.shipments = [...(order.shipments || []), shipment];
+      if (order.status === StatusDO.DISETUJUI || order.status === "APPROVED") {
+        order.status = StatusDO.DALAM_PENGIRIMAN;
+      }
+      store.set(orderId, order);
+      return order;
+    },
+    async reportShipment(orderId, shipmentId, data) {
+      const order = store.get(orderId);
+      order.shipments = order.shipments.map((shipment) => shipment.id === shipmentId
+        ? { ...shipment, ...data, status: StatusDO.MENUNGGU_KONFIRMASI }
+        : shipment);
+      if (order.shipments.every((shipment) => shipment.status !== StatusDO.DALAM_PENGIRIMAN)) {
+        order.status = StatusDO.MENUNGGU_KONFIRMASI;
+      }
+      store.set(orderId, order);
+      return order;
     },
     async nextNoDo() {
       return "DO-TEST-001";
@@ -47,27 +76,26 @@ function createMockTarifRepo() {
   };
 }
 
-test("New SO Workflow: Create SO directly as MENUNGGU_ACC -> ACC Direktur -> Attach Doc & Driver -> DALAM_PENGIRIMAN", async () => {
+test("one approved SO accepts multiple DOCs and tracks each vehicle independently", async () => {
   const repo = createMockRepo();
   const tarifRepo = createMockTarifRepo();
 
-  // 1. Create SO directly with MENUNGGU_ACC (from Admin Input SO form)
+  // 1. Create the SO with destination and allowance only.
   const createUseCase = new CreateDeliveryOrderUseCase(repo, tarifRepo);
   const createdOrder = await createUseCase.execute({
     tarifId: "tarif-1",
     noSchedule: "SCH-202611-001",
     tglSchedule: "2026-11-15",
-    noPolisiKendaraan: "B 9482 KDA",
-    tipeMobilRit: "CDD Box (8 Ton) / Rit 1",
     uangJalanSupir: 450000,
     namaToko: "Toko Sinar Rezeki",
+    noHpPenerima: "081234567890",
     alamatLengkapTujuan: "Jl. Otista No. 12 Subang",
     status: StatusDO.MENUNGGU_ACC,
   }, { id: "user-1", nama: "Admin Logistik", role: "ADMIN" });
 
   assert.equal(createdOrder.status, StatusDO.MENUNGGU_ACC);
   assert.equal(createdOrder.uangJalanSupir, 450000);
-  assert.equal(createdOrder.noPolisiKendaraan, "B 9482 KDA");
+  assert.equal(createdOrder.noPolisiKendaraan, "");
   assert.equal(createdOrder.namaSupir, "");
 
   // 2. Direktur approves SO (Gate 1)
@@ -80,21 +108,80 @@ test("New SO Workflow: Create SO directly as MENUNGGU_ACC -> ACC Direktur -> Att
   assert.equal(approved.status, StatusDO.DISETUJUI);
   assert.equal(approved.disetujuiOleh, "Direktur Utama");
 
-  // 3. Admin attaches Surat Jalan Pabrik (No. DOC) + Assigns Driver
+  // 3. Admin adds multiple DOCs and assigns a vehicle/driver to each.
   const attachUseCase = new AttachDocPerusahaanUseCase(repo);
   const inDelivery = await attachUseCase.execute(createdOrder.id, {
     noDocPerusahaan: "SJ-PABRIK-88192",
     tglDocPerusahaan: "2026-11-15",
     namaSupir: "Pak Bambang",
-    noHpSupir: "081234567890",
-    keteranganDoc: "Surat jalan fisik dari Karawang telah diterima",
+    jenisKendaraan: "SEWA",
+    noPolisiKendaraan: "B 9482 KDA",
+    tipeMobilRit: "CDD Box / Rit 1",
   });
 
   assert.equal(inDelivery.status, StatusDO.DALAM_PENGIRIMAN);
-  assert.equal(inDelivery.noDocPerusahaan, "SJ-PABRIK-88192");
-  assert.equal(inDelivery.namaSupir, "Pak Bambang");
-  assert.equal(inDelivery.noHpSupir, "081234567890");
+  const secondShipment = await attachUseCase.execute(createdOrder.id, {
+    noDocPerusahaan: "SJ-PABRIK-88193",
+    tglDocPerusahaan: "2026-11-15",
+    namaSupir: "Pak Joko",
+    jenisKendaraan: "PRIBADI",
+    noPolisiKendaraan: "B 1122 ABC",
+    tipeMobilRit: "Fuso / Rit 2",
+  });
+  assert.equal(secondShipment.shipments.length, 2);
+  assert.equal(secondShipment.shipments[0].noDocPerusahaan, "SJ-PABRIK-88192");
+  assert.equal(secondShipment.shipments[1].noDocPerusahaan, "SJ-PABRIK-88193");
   assert.equal(inDelivery.uangJalanSupir, 450000);
+
+  const reportUseCase = new ReportDeliveryUseCase(repo);
+  const firstReported = await reportUseCase.execute({
+    orderId: createdOrder.id,
+    shipmentId: secondShipment.shipments[0].id,
+    namaPenerimaBarang: "Penerima Toko",
+  });
+  assert.equal(firstReported.status, StatusDO.DALAM_PENGIRIMAN);
+  assert.equal(firstReported.shipments[0].status, StatusDO.MENUNGGU_KONFIRMASI);
+  assert.equal(firstReported.shipments[1].status, StatusDO.DALAM_PENGIRIMAN);
+
+  const reported = await reportUseCase.execute({
+    orderId: createdOrder.id,
+    shipmentId: secondShipment.shipments[1].id,
+    namaPenerimaBarang: "Penerima Toko",
+  });
+  assert.equal(reported.status, StatusDO.MENUNGGU_KONFIRMASI);
+});
+
+test("vehicle details cannot be added before director approval", async () => {
+  const repo = createMockRepo();
+  const order = {
+    id: "do-pending",
+    status: StatusDO.MENUNGGU_ACC,
+  };
+  await repo.create(order);
+
+  const attachUseCase = new AttachDocPerusahaanUseCase(repo);
+  await assert.rejects(
+    attachUseCase.execute(order.id, {
+      noDocPerusahaan: "SJ-1",
+      tglDocPerusahaan: "2026-11-15",
+      namaSupir: "Pak Bambang",
+      jenisKendaraan: "PRIBADI",
+      noPolisiKendaraan: "B 9482 KDA",
+      tipeMobilRit: "CDD Box / Rit 1",
+    }),
+    /hanya dapat diisi setelah SO disetujui Direktur/
+  );
+});
+
+test("delivery cannot be reported until post-approval vehicle details are saved", async () => {
+  const useCase = new ReportDeliveryUseCase({
+    findById: async () => ({ id: "do-approved", status: StatusDO.DISETUJUI }),
+  });
+
+  await assert.rejects(
+    useCase.execute({ orderId: "do-approved", namaPenerimaBarang: "Penerima" }),
+    /setelah dokumen dan detail armada dilengkapi/
+  );
 });
 
 test("New SO Workflow: Draft order submitted to Director without driver/doc requirement", async () => {
@@ -107,8 +194,6 @@ test("New SO Workflow: Draft order submitted to Director without driver/doc requ
     tarifId: "tarif-1",
     noSchedule: "SCH-202611-002",
     tglSchedule: "2026-11-16",
-    noPolisiKendaraan: "D 8888 ABC",
-    tipeMobilRit: "Fuso (15 Ton) / Rit 1",
     uangJalanSupir: 750000,
     status: StatusDO.DRAFT,
   }, { id: "user-1", nama: "Admin Logistik", role: "ADMIN" });

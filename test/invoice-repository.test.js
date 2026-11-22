@@ -40,6 +40,50 @@ test("Invoice responses include schedule details without changing invoice item s
   assert.equal(invoice.groupedItems[0].area, "KARAWANG");
 });
 
+test("Invoice response expands every shipment DOC with its own rit and document date", async () => {
+  const prisma = {
+    invoice: {
+      findMany: async () => [{
+        id: "invoice-2",
+        noInvoice: "INV-2",
+        items: [{
+          deliveryOrderId: "do-2",
+          noDocPerusahaan: "DOC-1",
+          biayaEkspedisi: 100000,
+        }],
+      }],
+    },
+    deliveryOrder: {
+      findMany: async () => [{
+        id: "do-2",
+        noDo: "DO-2",
+        schedule: { noSchedule: "SO-2", tipeMobilRit: "CDD / Rit 1" },
+        shipments: [
+          {
+            noDocPerusahaan: "DOC-1",
+            tipeMobilRit: "CDD / Rit 1",
+            tglDocPerusahaan: new Date("2026-11-20T00:00:00.000Z"),
+          },
+          {
+            noDocPerusahaan: "DOC-2",
+            tipeMobilRit: "Fuso / Rit 2",
+            tglDocPerusahaan: new Date("2026-11-21T00:00:00.000Z"),
+          },
+        ],
+      }],
+    },
+  };
+
+  const [invoice] = await new MysqlInvoiceRepository(prisma).list();
+  const [firstDoc, secondDoc] = invoice.items[0].ritPerDocument;
+
+  assert.equal(invoice.items[0].noDocPerusahaan, "DOC-1, DOC-2");
+  assert.equal(firstDoc.rit, "CDD / Rit 1");
+  assert.equal(firstDoc.tglDocPerusahaan.toISOString(), "2026-11-20T00:00:00.000Z");
+  assert.equal(secondDoc.rit, "Fuso / Rit 2");
+  assert.equal(secondDoc.tglDocPerusahaan.toISOString(), "2026-11-21T00:00:00.000Z");
+});
+
 test("Unlinked INV-AYT-PL-003 items reuse matching bookkeeping schedules in schedule-date order", async () => {
   const prisma = {
     invoice: {

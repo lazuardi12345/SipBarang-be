@@ -105,6 +105,7 @@ model DeliveryOrder {
 
   schedule            DeliveryOrderSchedule?
   document            DeliveryOrderDocument?
+  shipments           DeliveryOrderShipment[]
   approvals           DeliveryOrderApproval[]
   reports             DeliveryOrderReport[]
   confirmations      DeliveryOrderConfirmation[]
@@ -154,6 +155,29 @@ model DeliveryOrderDocument {
   updatedAt            DateTime      @updatedAt @map("updated_at")
 
   @@map("delivery_order_documents")
+}
+
+model DeliveryOrderShipment {
+  id                  String              @id @default(uuid()) @db.VarChar(64)
+  orderId             String              @map("order_id") @db.VarChar(64)
+  order               DeliveryOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  noDocPerusahaan     String              @map("no_doc_perusahaan") @db.VarChar(100)
+  tglDocPerusahaan    DateTime            @map("tgl_doc_perusahaan") @db.Date
+  namaSupir           String              @map("nama_supir") @db.VarChar(150)
+  jenisKendaraan      String              @map("jenis_kendaraan") @db.VarChar(30)
+  noPolisiKendaraan   String              @map("no_polisi_kendaraan") @db.VarChar(80)
+  tipeMobilRit        String              @map("tipe_mobil_rit") @db.VarChar(150)
+  status              DeliveryOrderStatus @default(DALAM_PENGIRIMAN)
+  namaPenerimaBarang  String?             @map("nama_penerima_barang") @db.VarChar(200)
+  catatanPelaporan    String?             @map("catatan_pelaporan") @db.Text
+  buktiPengirimanUrl  String?             @map("bukti_pengiriman_url") @db.LongText
+  tanggalDiterima     DateTime?           @map("tanggal_diterima")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  @@unique([orderId, noDocPerusahaan])
+  @@index([orderId, status])
+  @@map("delivery_order_shipments")
 }
 
 model DeliveryOrderApproval {
