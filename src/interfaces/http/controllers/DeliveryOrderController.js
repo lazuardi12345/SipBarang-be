@@ -15,6 +15,7 @@ export class DeliveryOrderController {
     consolidateRunUseCase,
     updateDeliveryOrderLembarUseCase,
     updateDeliveryOrderMdoUseCase,
+    setDeliveryOrderOwnershipUseCase,
   }) {
     this.createDeliveryOrderUseCase = createDeliveryOrderUseCase;
     this.getDeliveryOrdersUseCase = getDeliveryOrdersUseCase;
@@ -31,6 +32,7 @@ export class DeliveryOrderController {
     this.consolidateRunUseCase = consolidateRunUseCase;
     this.updateDeliveryOrderLembarUseCase = updateDeliveryOrderLembarUseCase;
     this.updateDeliveryOrderMdoUseCase = updateDeliveryOrderMdoUseCase;
+    this.setDeliveryOrderOwnershipUseCase = setDeliveryOrderOwnershipUseCase;
   }
 
   getAll = async (req, res, next) => {
@@ -200,6 +202,22 @@ export class DeliveryOrderController {
       res.status(200).json({
         success: true,
         message: "Laporan pengiriman telah dikonfirmasi (TERKIRIM) oleh Direktur",
+        data: updated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  setOwnership = async (req, res, next) => {
+    try {
+      const updated = await this.setDeliveryOrderOwnershipUseCase.execute(
+        req.params.id,
+        req.body
+      );
+      res.status(200).json({
+        success: true,
+        message: "Kepemilikan kendaraan berhasil dilengkapi",
         data: updated,
       });
     } catch (err) {

@@ -32,6 +32,7 @@ import { ConfirmDeliveredUseCase } from "./application/use-cases/delivery-order/
 import { ConsolidateRunUseCase } from "./application/use-cases/delivery-order/ConsolidateRunUseCase.js";
 import { UpdateDeliveryOrderLembarUseCase } from "./application/use-cases/delivery-order/UpdateDeliveryOrderLembarUseCase.js";
 import { UpdateDeliveryOrderMdoUseCase } from "./application/use-cases/delivery-order/UpdateDeliveryOrderMdoUseCase.js";
+import { SetDeliveryOrderOwnershipUseCase } from "./application/use-cases/delivery-order/SetDeliveryOrderOwnershipUseCase.js";
 
 import { GenerateInvoiceUseCase } from "./application/use-cases/invoice/GenerateInvoiceUseCase.js";
 import { GetInvoicesUseCase, GetInvoiceByIdUseCase, UpdateInvoiceStatusUseCase, VerifyInvoiceUseCase } from "./application/use-cases/invoice/GetInvoicesUseCase.js";
@@ -99,6 +100,7 @@ export async function createContainer() {
   const consolidateRunUseCase = new ConsolidateRunUseCase(deliveryOrderRepository);
   const updateDeliveryOrderLembarUseCase = new UpdateDeliveryOrderLembarUseCase(deliveryOrderRepository);
   const updateDeliveryOrderMdoUseCase = new UpdateDeliveryOrderMdoUseCase(deliveryOrderRepository);
+  const setDeliveryOrderOwnershipUseCase = new SetDeliveryOrderOwnershipUseCase(deliveryOrderRepository);
 
   const generateInvoiceUseCase = new GenerateInvoiceUseCase(invoiceRepository, deliveryOrderRepository);
   const getInvoicesUseCase = new GetInvoicesUseCase(invoiceRepository);
@@ -139,6 +141,7 @@ export async function createContainer() {
     consolidateRunUseCase,
     updateDeliveryOrderLembarUseCase,
     updateDeliveryOrderMdoUseCase,
+    setDeliveryOrderOwnershipUseCase,
   });
   const invoiceController = new InvoiceController(
     generateInvoiceUseCase,

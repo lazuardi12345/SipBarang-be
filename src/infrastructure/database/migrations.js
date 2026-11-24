@@ -8,8 +8,8 @@
  * satu order tidak menumpuk semua data di satu tabel besar.
  */
 
-export const CREATE_DATABASE_SQL = `
-  CREATE DATABASE IF NOT EXISTS \`delivery_order_db_prisma\`
+export const CREATE_DATABASE_SQL = (databaseName) => `
+  CREATE DATABASE IF NOT EXISTS \`${databaseName.replace(/`/g, "``")}\`
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 `;
 
@@ -128,6 +128,31 @@ export const CREATE_DELIVERY_ORDER_DOCUMENTS_TABLE = `
     CONSTRAINT fk_dod_order FOREIGN KEY (\`order_id\`) REFERENCES \`delivery_orders\`(\`id\`) ON DELETE CASCADE,
     INDEX idx_order_id (\`order_id\`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+`;
+
+export const CREATE_DELIVERY_ORDER_SHIPMENTS_TABLE = `
+  CREATE TABLE IF NOT EXISTS \`delivery_order_shipments\` (
+    \`id\`                    VARCHAR(64)   NOT NULL PRIMARY KEY,
+    \`order_id\`              VARCHAR(64)   NOT NULL,
+    \`no_doc_perusahaan\`     VARCHAR(100)  NOT NULL,
+    \`tgl_doc_perusahaan\`    DATE          NOT NULL,
+    \`nama_supir\`            VARCHAR(150)  NOT NULL,
+    \`jenis_kendaraan\`       VARCHAR(30)   NOT NULL,
+    \`no_polisi_kendaraan\`   VARCHAR(80)   NOT NULL,
+    \`tipe_mobil_rit\`        VARCHAR(150)  NOT NULL,
+    \`status\`                ENUM('DRAFT','PLANNING','MENUNGGU_ACC','MENUNGGU_APPROVAL','DISETUJUI','APPROVED','DITOLAK','REJECTED','DALAM_PENGIRIMAN','MENUNGGU_KONFIRMASI','TERKIRIM','DIKIRIM','SELESAI','DIBATALKAN') NOT NULL DEFAULT 'DALAM_PENGIRIMAN',
+    \`nama_penerima_barang\`  VARCHAR(200)  NULL,
+    \`catatan_pelaporan\`     TEXT          NULL,
+    \`bukti_pengiriman_url\`  LONGTEXT      NULL,
+    \`tanggal_diterima\`      DATETIME      NULL,
+    \`created_at\`            DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    \`updated_at\`            DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT \`delivery_order_shipments_order_id_fkey\`
+      FOREIGN KEY (\`order_id\`) REFERENCES \`delivery_orders\`(\`id\`) ON DELETE CASCADE,
+    UNIQUE INDEX \`delivery_order_shipments_order_id_no_doc_perusahaan_key\` (\`order_id\`, \`no_doc_perusahaan\`),
+    INDEX \`delivery_order_shipments_order_id_status_idx\` (\`order_id\`, \`status\`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
 
 export const CREATE_DELIVERY_ORDER_APPROVALS_TABLE = `
@@ -271,6 +296,7 @@ export const ALL_MIGRATIONS = [
   { name: "delivery_orders", sql: CREATE_DELIVERY_ORDERS_TABLE },
   { name: "delivery_order_schedules", sql: CREATE_DELIVERY_ORDER_SCHEDULES_TABLE },
   { name: "delivery_order_documents", sql: CREATE_DELIVERY_ORDER_DOCUMENTS_TABLE },
+  { name: "delivery_order_shipments", sql: CREATE_DELIVERY_ORDER_SHIPMENTS_TABLE },
   { name: "delivery_order_approvals", sql: CREATE_DELIVERY_ORDER_APPROVALS_TABLE },
   { name: "delivery_order_reports", sql: CREATE_DELIVERY_ORDER_REPORTS_TABLE },
   { name: "delivery_order_confirmations", sql: CREATE_DELIVERY_ORDER_CONFIRMATIONS_TABLE },

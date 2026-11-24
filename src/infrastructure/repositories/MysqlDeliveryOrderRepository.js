@@ -277,6 +277,29 @@ export class MysqlDeliveryOrderRepository extends IDeliveryOrderRepository {
     return this._toEntity(row);
   }
 
+  async updateVehicleOwnership(orderId, jenisKendaraan) {
+    return this.prisma.$transaction(async (tx) => {
+      const [shipments, schedule] = await Promise.all([
+        tx.deliveryOrderShipment.updateMany({
+          where: { orderId },
+          data: { jenisKendaraan },
+        }),
+        tx.deliveryOrderSchedule.updateMany({
+          where: { orderId },
+          data: { jenisKendaraan },
+        }),
+      ]);
+
+      if (shipments.count === 0 && schedule.count === 0) return null;
+
+      const row = await tx.deliveryOrder.findUnique({
+        where: { id: orderId },
+        include: this.include,
+      });
+      return this._toEntity(row);
+    });
+  }
+
   async addShipment(orderId, data) {
     const order = await this.prisma.deliveryOrder.findUnique({
       where: { id: orderId },

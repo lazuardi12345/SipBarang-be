@@ -44,5 +44,8 @@ export function createDeliveryOrderRoutes(deliveryOrderController, authMiddlewar
   // Direktur Konfirmasi Pengiriman Selesai (Gate 2: MENUNGGU_KONFIRMASI -> TERKIRIM)
   router.patch("/:id/confirm-delivered", roleMiddleware([UserRole.DIREKTUR]), deliveryOrderController.confirmDelivered);
 
+  // Direktur melengkapi kepemilikan kendaraan untuk SO terkirim yang belum lengkap
+  router.patch("/:id/ownership", roleMiddleware([UserRole.DIREKTUR]), deliveryOrderController.setOwnership);
+
   return router;
 }

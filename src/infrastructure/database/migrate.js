@@ -26,7 +26,7 @@ async function migrate() {
     password: DB_PASSWORD,
   });
 
-  await rootConn.query(CREATE_DATABASE_SQL);
+  await rootConn.query(CREATE_DATABASE_SQL(DB_NAME));
   console.log(`✅ Database "${DB_NAME}" siap.\n`);
   await rootConn.end();
 

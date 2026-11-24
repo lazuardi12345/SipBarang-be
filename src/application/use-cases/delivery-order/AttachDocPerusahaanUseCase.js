@@ -1,5 +1,12 @@
 import { StatusDO } from "../../../domain/entities/DeliveryOrder.js";
 
+function normalizeVehicleOwnership(value) {
+  const ownership = String(value || "").trim().toUpperCase();
+  if (ownership === "SEWA" || ownership === "VENDOR") return "VENDOR";
+  if (ownership === "PRIBADI" || ownership === "MILIK_PRIBADI") return "PRIBADI";
+  return null;
+}
+
 /**
  * Use Case: Input Surat Jalan dari Perusahaan (Pabrik) dan Penugasan Supir.
  * Dilakukan setelah SO di-ACC oleh Direktur (status DISETUJUI).
@@ -48,11 +55,27 @@ export class AttachDocPerusahaanUseCase {
     }
 
     const namaSupir = String(docData.namaSupir || "").trim();
-    const jenisKendaraan = String(docData.jenisKendaraan || "").trim().toUpperCase();
+    const jenisKendaraan = normalizeVehicleOwnership(docData.jenisKendaraan);
     const noPolisiKendaraan = String(docData.noPolisiKendaraan || "").trim().toUpperCase();
     const tipeMobilRit = String(docData.tipeMobilRit || "").trim();
-    if (!namaSupir || !["SEWA", "PRIBADI"].includes(jenisKendaraan) || !noPolisiKendaraan || !tipeMobilRit) {
+    if (!namaSupir || !jenisKendaraan || !noPolisiKendaraan || !tipeMobilRit) {
       const err = new Error("Nama supir, kepemilikan kendaraan (Vendor/Pribadi), nomor polisi, tipe mobil, dan rit wajib diisi");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const existingShipments = order.shipments || [];
+    const existingOwnerships = existingShipments.map((shipment) =>
+      normalizeVehicleOwnership(shipment.jenisKendaraan)
+    );
+    const legacyOwnership = normalizeVehicleOwnership(order.jenisKendaraan);
+    if (
+      existingOwnerships.some((ownership) => ownership == null) ||
+      new Set(existingOwnerships).size > 1 ||
+      (existingOwnerships.length > 0 && existingOwnerships[0] !== jenisKendaraan) ||
+      (existingOwnerships.length === 0 && legacyOwnership && legacyOwnership !== jenisKendaraan)
+    ) {
+      const err = new Error("Semua DOC dalam satu SO harus menggunakan jenis kepemilikan yang sama");
       err.statusCode = 400;
       throw err;
     }

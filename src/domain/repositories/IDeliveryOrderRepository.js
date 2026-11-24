@@ -3,6 +3,7 @@ export class IDeliveryOrderRepository {
   async update(order) { throw new Error("Method not implemented"); }
   async delete(id) { throw new Error("Method not implemented"); }
   async findById(id) { throw new Error("Method not implemented"); }
+  async updateVehicleOwnership(id, ownership) { throw new Error("Method not implemented"); }
   async list() { throw new Error("Method not implemented"); }
   async listByStatus(status) { throw new Error("Method not implemented"); }
   async count() { throw new Error("Method not implemented"); }

@@ -120,11 +120,12 @@ test("one approved SO accepts multiple DOCs and tracks each vehicle independentl
   });
 
   assert.equal(inDelivery.status, StatusDO.DALAM_PENGIRIMAN);
+  assert.equal(inDelivery.shipments[0].jenisKendaraan, "VENDOR");
   const secondShipment = await attachUseCase.execute(createdOrder.id, {
     noDocPerusahaan: "SJ-PABRIK-88193",
     tglDocPerusahaan: "2026-11-15",
     namaSupir: "Pak Joko",
-    jenisKendaraan: "PRIBADI",
+    jenisKendaraan: "VENDOR",
     noPolisiKendaraan: "B 1122 ABC",
     tipeMobilRit: "Fuso / Rit 2",
   });
@@ -149,6 +150,28 @@ test("one approved SO accepts multiple DOCs and tracks each vehicle independentl
     namaPenerimaBarang: "Penerima Toko",
   });
   assert.equal(reported.status, StatusDO.MENUNGGU_KONFIRMASI);
+});
+
+test("one SO rejects DOCs with a different ownership type", async () => {
+  const repo = createMockRepo();
+  await repo.create({
+    id: "do-vendor",
+    status: StatusDO.DALAM_PENGIRIMAN,
+    shipments: [{ noDocPerusahaan: "SJ-EXISTING", jenisKendaraan: "VENDOR" }],
+  });
+
+  const attachUseCase = new AttachDocPerusahaanUseCase(repo);
+  await assert.rejects(
+    attachUseCase.execute("do-vendor", {
+      noDocPerusahaan: "SJ-NEW",
+      tglDocPerusahaan: "2026-11-15",
+      namaSupir: "Pak Bambang",
+      jenisKendaraan: "PRIBADI",
+      noPolisiKendaraan: "B 9482 KDA",
+      tipeMobilRit: "CDD Box / Rit 1",
+    }),
+    /Semua DOC dalam satu SO harus menggunakan jenis kepemilikan yang sama/
+  );
 });
 
 test("vehicle details cannot be added before director approval", async () => {
